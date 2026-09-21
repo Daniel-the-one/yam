@@ -44,6 +44,12 @@ if ($photo_profil !== null && $photo_profil !== '' && !str_starts_with($photo_pr
     $photo_profil = '/' . $photo_profil;
 }
 $has_photo = ($photo_profil !== null && $photo_profil !== '');
+$init = '';
+foreach (preg_split('/\s+/', $prenom_nom) as $w) {
+    $init .= mb_strtoupper(mb_substr($w, 0, 1));
+    if (mb_strlen($init) >= 2) break;
+}
+if ($init === '') $init = 'PA';
 ?>
 
 <div class="page-head">
@@ -53,47 +59,45 @@ $has_photo = ($photo_profil !== null && $photo_profil !== '');
   </div>
 </div>
 
-<!-- ── Photo profil + infos de base ── -->
-<div class="card" style="padding:0; overflow:hidden; margin-bottom:20px;">
-  <!-- Bande verte avec avatar qui chevauche -->
-  <div style="height:100px; background:linear-gradient(135deg, var(--accent-2) 0%, #047857 100%); position:relative;"></div>
-  <div style="padding:0 24px 24px; margin-top:-48px;">
-    <div style="display:flex; align-items:flex-end; gap:16px; margin-bottom:20px;">
-      <div id="photo-preview" style="width:96px; height:96px; border-radius:50%; border:4px solid #fff;
-           box-shadow:0 2px 12px rgba(0,0,0,.15); overflow:hidden; flex-shrink:0;
-           display:flex; align-items:center; justify-content:center; background:rgba(16,185,129,.14); color:var(--accent-2);
-           font-weight:700; font-size:32px; cursor:pointer; position:relative;"
-           title="Cliquer pour changer la photo">
-        <?php if ($has_photo): ?>
-          <img src="<?= htmlspecialchars($photo_profil) ?>" alt="Photo"
-               style="width:100%; height:100%; object-fit:cover;">
-        <?php else: ?>
-          <?php
-            $init = '';
-            foreach (preg_split('/\s+/', $prenom_nom) as $w) {
-                $init .= mb_strtoupper(mb_substr($w, 0, 1));
-                if (mb_strlen($init) >= 2) break;
-            }
-            if ($init === '') $init = '??';
-          ?>
-          <span><?= htmlspecialchars($init) ?></span>
+<!-- ── Photo profil + infos de base dans le bandeau vert ── -->
+<div class="card" style="padding:0; overflow:hidden; margin-bottom:20px; border:none; box-shadow:0 4px 16px rgba(0,0,0,0.06);">
+  <div style="background:linear-gradient(135deg, var(--accent-2) 0%, #047857 100%); padding:24px; display:flex; align-items:center; gap:20px; color:#fff;">
+    <!-- Avatar (cliquable pour modifier) -->
+    <div id="photo-preview" style="width:88px; height:88px; border-radius:50%; border:3px solid rgba(255,255,255,0.9);
+         box-shadow:0 4px 14px rgba(0,0,0,0.2); overflow:hidden; flex-shrink:0;
+         display:flex; align-items:center; justify-content:center; background:#ffffff; color:#047857;
+         font-weight:700; font-size:28px; cursor:pointer; position:relative;"
+         title="Cliquer pour changer la photo">
+      <?php if ($has_photo): ?>
+        <img src="<?= htmlspecialchars($photo_profil) ?>" alt=""
+             style="width:100%; height:100%; object-fit:cover;"
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <span style="display:none; width:100%; height:100%; align-items:center; justify-content:center;"><?= htmlspecialchars($init) ?></span>
+      <?php else: ?>
+        <span style="display:flex; width:100%; height:100%; align-items:center; justify-content:center;"><?= htmlspecialchars($init) ?></span>
+      <?php endif; ?>
+      <input type="file" id="photo-input" accept="image/*" hidden>
+    </div>
+
+    <!-- Infos patient dans le bandeau vert -->
+    <div style="min-width:0; flex:1;">
+      <div style="font-weight:700; font-size:22px; line-height:1.2; color:#fff; word-break:break-word;"><?= htmlspecialchars($prenom_nom ?: 'Patient') ?></div>
+      <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <?php if ($groupe_sang !== ''): ?>
+          <span style="background:rgba(255,255,255,0.22); color:#fff; border:1px solid rgba(255,255,255,0.35); padding:3px 12px; border-radius:12px; font-weight:600; font-size:12px;">
+            <i class="bi bi-droplet-fill" style="color:#fca5a5;"></i> <?= htmlspecialchars($groupe_sang) ?>
+          </span>
         <?php endif; ?>
-        <input type="file" id="photo-input" accept="image/*" hidden>
-      </div>
-      <div style="padding-bottom:4px; min-width:0;">
-        <div style="font-weight:700; font-size:20px;"><?= htmlspecialchars($prenom_nom ?: 'Patient') ?></div>
-        <div style="margin-top:4px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-          <?php if ($groupe_sang !== ''): ?>
-            <span style="background:rgba(239,68,68,.1); color:#dc2626; padding:2px 10px; border-radius:12px; font-weight:600; font-size:12px;">
-              <?= htmlspecialchars($groupe_sang) ?>
-            </span>
-          <?php endif; ?>
-          <?php if ($assurance !== ''): ?>
-            <span style="background:rgba(16,185,129,.1); color:#047857; padding:2px 10px; border-radius:12px; font-weight:600; font-size:12px;">
-              <i class="bi bi-shield-check"></i> <?= htmlspecialchars($assurance) ?>
-            </span>
-          <?php endif; ?>
-        </div>
+        <?php if ($assurance !== ''): ?>
+          <span style="background:rgba(255,255,255,0.22); color:#fff; border:1px solid rgba(255,255,255,0.35); padding:3px 12px; border-radius:12px; font-weight:600; font-size:12px;">
+            <i class="bi bi-shield-check"></i> <?= htmlspecialchars($assurance) ?>
+          </span>
+        <?php endif; ?>
+        <?php if ($telephone !== ''): ?>
+          <span style="color:rgba(255,255,255,0.85); font-size:13px;">
+            <i class="bi bi-telephone"></i> <?= htmlspecialchars($telephone) ?>
+          </span>
+        <?php endif; ?>
       </div>
     </div>
   </div>

@@ -79,44 +79,48 @@ include __DIR__ . '/../includes/header.php';
 </div>
 
 <!-- ── Carte profil principal ── -->
-<div class="card" style="padding:0; overflow:hidden;">
-  <!-- Bandeau vert en haut -->
-  <div style="height:100px; background:linear-gradient(135deg, var(--accent-2) 0%, #047857 100%); position:relative;"></div>
+<div class="card" style="padding:0; overflow:hidden; border:none; box-shadow:0 4px 16px rgba(0,0,0,0.06);">
+  <!-- Bandeau vert avec avatar et infos à l'intérieur -->
+  <div style="background:linear-gradient(135deg, var(--accent-2) 0%, #047857 100%); padding:24px; display:flex; align-items:center; gap:20px; color:#fff;">
+    <?php if ($has_photo): ?>
+      <div style="width:88px; height:88px; border-radius:50%; border:3px solid rgba(255,255,255,0.9);
+                  box-shadow:0 4px 14px rgba(0,0,0,0.2); overflow:hidden; flex-shrink:0; background:#fff;
+                  display:flex; align-items:center; justify-content:center; color:#047857; font-weight:700; font-size:28px;">
+        <img src="<?= htmlspecialchars($photo) ?>" alt=""
+             style="width:100%; height:100%; object-fit:cover;"
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <span style="display:none; width:100%; height:100%; align-items:center; justify-content:center;"><?= htmlspecialchars($init) ?></span>
+      </div>
+    <?php else: ?>
+      <div style="width:88px; height:88px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+                   background:#ffffff; color:#047857; font-weight:700; font-size:28px;
+                   border:3px solid rgba(255,255,255,0.9); box-shadow:0 4px 14px rgba(0,0,0,0.2); flex-shrink:0;">
+        <?= htmlspecialchars($init) ?>
+      </div>
+    <?php endif; ?>
 
-  <div style="padding:0 24px 24px; margin-top:-48px;">
-    <!-- Photo de profil + infos -->
-    <div style="display:flex; align-items:flex-end; gap:18px; margin-bottom:20px;">
-      <?php if ($has_photo): ?>
-        <img src="<?= htmlspecialchars($photo) ?>" alt="Photo du Dr <?= htmlspecialchars($nom_complet) ?>"
-             style="width:96px; height:96px; border-radius:50%; object-fit:cover; border:4px solid #fff;
-                    box-shadow:0 2px 12px rgba(0,0,0,.15); flex-shrink:0;">
-      <?php else: ?>
-        <span style="width:96px; height:96px; border-radius:50%; display:flex; align-items:center; justify-content:center;
-                     background:rgba(16,185,129,.14); color:var(--accent-2); font-weight:700; font-size:32px;
-                     border:4px solid #fff; box-shadow:0 2px 12px rgba(0,0,0,.15); flex-shrink:0;">
-          <?= htmlspecialchars($init) ?>
-        </span>
-      <?php endif; ?>
-
-      <div style="padding-bottom:4px; min-width:0;">
-        <h1 style="margin:0; font-size:24px;">Dr <?= htmlspecialchars($nom_complet) ?></h1>
-        <div style="color:var(--muted); margin-top:2px;">
-          <i class="bi bi-briefcase"></i> <?= htmlspecialchars($specialite) ?>
-        </div>
+    <div style="min-width:0; flex:1;">
+      <h1 style="margin:0; font-size:24px; font-weight:700; color:#fff; line-height:1.2; word-break:break-word;">Dr <?= htmlspecialchars($nom_complet) ?></h1>
+      <div style="color:rgba(255,255,255,0.88); margin-top:4px; font-size:14px; font-weight:500;">
+        <i class="bi bi-briefcase"></i> <?= htmlspecialchars($specialite) ?>
+      </div>
+      <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
         <?php if ($accepte_rdv): ?>
-          <span style="display:inline-block; margin-top:6px; padding:2px 10px; border-radius:12px; font-size:12px;
-                       background:rgba(16,185,129,.12); color:#047857; font-weight:600;">
+          <span style="display:inline-flex; align-items:center; gap:5px; padding:3px 12px; border-radius:12px; font-size:12px;
+                       background:rgba(255,255,255,0.22); color:#fff; font-weight:600; border:1px solid rgba(255,255,255,0.35);">
             <i class="bi bi-check-circle-fill"></i> Accepte les rendez-vous
           </span>
         <?php else: ?>
-          <span style="display:inline-block; margin-top:6px; padding:2px 10px; border-radius:12px; font-size:12px;
-                       background:rgba(239,68,68,.12); color:#dc2626; font-weight:600;">
+          <span style="display:inline-flex; align-items:center; gap:5px; padding:3px 12px; border-radius:12px; font-size:12px;
+                       background:rgba(239,68,68,0.3); color:#fff; font-weight:600; border:1px solid rgba(255,255,255,0.35);">
             <i class="bi bi-x-circle-fill"></i> Ne prend pas de nouveaux RDV
           </span>
         <?php endif; ?>
       </div>
     </div>
+  </div>
 
+  <div style="padding:24px;">
     <!-- Infos -->
     <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-bottom:20px;">
       <div>

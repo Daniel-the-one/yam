@@ -156,7 +156,9 @@ $csrf_token = csrf_generate();
       <div class="photo-upload">
         <div class="photo-preview" id="medecin-photo-preview">
           <?php if (!empty($medecin['photo'])): ?>
-            <img src="<?= htmlspecialchars($medecin['photo']) ?>" alt="Photo du médecin">
+            <img src="<?= htmlspecialchars($medecin['photo']) ?>" alt=""
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
+            <span style="display:none;"><?= htmlspecialchars($medecin_init) ?></span>
           <?php else: ?>
             <span><?= htmlspecialchars($medecin_init) ?></span>
           <?php endif; ?>
@@ -242,7 +244,9 @@ $csrf_token = csrf_generate();
         <a href="/patient/profil" class="icon-btn icon-btn--doctor"
            title="Mon profil" aria-label="Mon profil">
           <?php if (!empty($profile_photo)): ?>
-            <img src="<?= htmlspecialchars($profile_photo) ?>" alt="Photo de profil" class="avatar-img">
+            <img src="<?= htmlspecialchars($profile_photo) ?>" alt="" class="avatar-img"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
+            <span class="avatar-letters" style="display:none;"><?= htmlspecialchars($profile_init) ?></span>
           <?php else: ?>
             <span class="avatar-letters"><?= htmlspecialchars($profile_init) ?></span>
           <?php endif; ?>
@@ -252,7 +256,9 @@ $csrf_token = csrf_generate();
                 title="Profil du médecin"
                 aria-label="Profil du médecin">
           <?php if (!empty($profile_photo)): ?>
-            <img src="<?= htmlspecialchars($profile_photo) ?>" alt="Photo de profil" class="avatar-img">
+            <img src="<?= htmlspecialchars($profile_photo) ?>" alt="" class="avatar-img"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
+            <span class="avatar-letters" style="display:none;"><?= htmlspecialchars($profile_init) ?></span>
           <?php else: ?>
             <span class="avatar-letters"><?= htmlspecialchars($profile_init) ?></span>
           <?php endif; ?>
