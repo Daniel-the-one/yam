@@ -51,13 +51,14 @@ $has_photo = ($photo_profil !== null && $photo_profil !== '');
 
 <!-- ── Photo profil + infos de base ── -->
 <div class="card" style="padding:0; overflow:hidden; margin-bottom:20px;">
-  <div style="height:80px; background:linear-gradient(135deg, var(--accent-2) 0%, #047857 100%);"></div>
-  <div style="padding:0 24px 24px; margin-top:-40px;">
+  <!-- Bande verte avec avatar qui chevauche -->
+  <div style="height:100px; background:linear-gradient(135deg, var(--accent-2) 0%, #047857 100%); position:relative;"></div>
+  <div style="padding:0 24px 24px; margin-top:-48px;">
     <div style="display:flex; align-items:flex-end; gap:16px; margin-bottom:20px;">
-      <div id="photo-preview" style="width:80px; height:80px; border-radius:50%; border:3px solid #fff;
+      <div id="photo-preview" style="width:96px; height:96px; border-radius:50%; border:4px solid #fff;
            box-shadow:0 2px 12px rgba(0,0,0,.15); overflow:hidden; flex-shrink:0;
            display:flex; align-items:center; justify-content:center; background:rgba(16,185,129,.14); color:var(--accent-2);
-           font-weight:700; font-size:28px; cursor:pointer; position:relative;"
+           font-weight:700; font-size:32px; cursor:pointer; position:relative;"
            title="Cliquer pour changer la photo">
         <?php if ($has_photo): ?>
           <img src="<?= htmlspecialchars($photo_profil) ?>" alt="Photo"
@@ -75,16 +76,18 @@ $has_photo = ($photo_profil !== null && $photo_profil !== '');
         <?php endif; ?>
         <input type="file" id="photo-input" accept="image/*" hidden>
       </div>
-      <div>
-        <div style="font-weight:700; font-size:18px;"><?= htmlspecialchars($prenom_nom ?: 'Patient') ?></div>
-        <div class="meta" style="color:var(--muted);">
+      <div style="padding-bottom:4px; min-width:0;">
+        <div style="font-weight:700; font-size:20px;"><?= htmlspecialchars($prenom_nom ?: 'Patient') ?></div>
+        <div style="margin-top:4px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
           <?php if ($groupe_sang !== ''): ?>
-            <span style="background:rgba(239,68,68,.1); color:#dc2626; padding:1px 8px; border-radius:8px; font-weight:600; font-size:12px;">
+            <span style="background:rgba(239,68,68,.1); color:#dc2626; padding:2px 10px; border-radius:12px; font-weight:600; font-size:12px;">
               <?= htmlspecialchars($groupe_sang) ?>
             </span>
           <?php endif; ?>
           <?php if ($assurance !== ''): ?>
-            <span style="margin-left:6px;"><i class="bi bi-shield-check"></i> <?= htmlspecialchars($assurance) ?></span>
+            <span style="background:rgba(16,185,129,.1); color:#047857; padding:2px 10px; border-radius:12px; font-weight:600; font-size:12px;">
+              <i class="bi bi-shield-check"></i> <?= htmlspecialchars($assurance) ?>
+            </span>
           <?php endif; ?>
         </div>
       </div>

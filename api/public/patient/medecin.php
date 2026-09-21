@@ -80,7 +80,7 @@ include __DIR__ . '/../includes/header.php';
   <div style="height:100px; background:linear-gradient(135deg, var(--accent-2) 0%, #047857 100%); position:relative;"></div>
 
   <div style="padding:0 24px 24px; margin-top:-48px;">
-    <!-- Photo de profil -->
+    <!-- Photo de profil + infos -->
     <div style="display:flex; align-items:flex-end; gap:18px; margin-bottom:20px;">
       <?php if ($has_photo): ?>
         <img src="<?= htmlspecialchars($photo) ?>" alt="Photo du Dr <?= htmlspecialchars($nom_complet) ?>"
@@ -94,7 +94,7 @@ include __DIR__ . '/../includes/header.php';
         </span>
       <?php endif; ?>
 
-      <div style="padding-bottom:4px;">
+      <div style="padding-bottom:4px; min-width:0;">
         <h1 style="margin:0; font-size:24px;">Dr <?= htmlspecialchars($nom_complet) ?></h1>
         <div style="color:var(--muted); margin-top:2px;">
           <i class="bi bi-briefcase"></i> <?= htmlspecialchars($specialite) ?>
