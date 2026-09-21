@@ -57,7 +57,69 @@ if (!function_exists('ensure_patient_schema')) {
             }
         }
 
-        // ---------- 2. Table rendez_vous ----------
+        // ---------- 2. Colonnes profil patient (groupe sanguin, allergies, etc.) ----------
+        $profileCols = [
+            'groupe_sanguin'  => $driver === 'sqlite' ? 'TEXT'                : 'VARCHAR(10) NULL',
+            'allergies'       => $driver === 'sqlite' ? 'TEXT'                : 'TEXT NULL',
+            'assurance'       => $driver === 'sqlite' ? 'TEXT'                : 'VARCHAR(120) NULL',
+            'contact_urgence' => $driver === 'sqlite' ? 'TEXT'                : 'VARCHAR(255) NULL',
+            'photo_profil'    => $driver === 'sqlite' ? 'TEXT'                : 'VARCHAR(255) NULL',
+            'bio'             => $driver === 'sqlite' ? 'TEXT'                : 'TEXT NULL',
+        ];
+        // Récupérer les colonnes existantes
+        $existingCols = [];
+        try {
+            if ($driver === 'sqlite') {
+                foreach ($pdo->query('PRAGMA table_info(patients)')->fetchAll() as $c) {
+                    $existingCols[] = $c['name'] ?? '';
+                }
+            } else {
+                foreach ($pdo->query('SHOW COLUMNS FROM patients')->fetchAll() as $c) {
+                    $existingCols[] = $c['Field'] ?? '';
+                }
+            }
+        } catch (PDOException $e) {}
+        foreach ($profileCols as $col => $type) {
+            if (!in_array($col, $existingCols, true)) {
+                try {
+                    $pdo->exec("ALTER TABLE patients ADD COLUMN $col $type");
+                } catch (PDOException $e) {
+                    error_log("[kondjipro] ensure_patient_schema add $col: " . $e->getMessage());
+                }
+            }
+        }
+
+        // ---------- 3. Enrichir la table medecins (bio, etc.) ----------
+        if ($pdo) {
+            $medCols = [];
+            try {
+                if ($driver === 'sqlite') {
+                    foreach ($pdo->query('PRAGMA table_info(medecins)')->fetchAll() as $c) {
+                        $medCols[] = $c['name'] ?? '';
+                    }
+                } else {
+                    foreach ($pdo->query('SHOW COLUMNS FROM medecins')->fetchAll() as $c) {
+                        $medCols[] = $c['Field'] ?? '';
+                    }
+                }
+                $medNewCols = [
+                    'bio'             => $driver === 'sqlite' ? 'TEXT' : 'TEXT NULL',
+                    'horaires'        => $driver === 'sqlite' ? 'TEXT' : 'TEXT NULL',
+                    'accepte_rdv'     => $driver === 'sqlite' ? 'INTEGER DEFAULT 1' : 'TINYINT(1) DEFAULT 1',
+                ];
+                foreach ($medNewCols as $col => $type) {
+                    if (!in_array($col, $medCols, true)) {
+                        try {
+                            $pdo->exec("ALTER TABLE medecins ADD COLUMN $col $type");
+                        } catch (PDOException $e) {
+                            error_log("[kondjipro] ensure_patient_schema add medecins.$col: " . $e->getMessage());
+                        }
+                    }
+                }
+            } catch (PDOException $e) {}
+        }
+
+        // ---------- 4. Table rendez_vous ----------
         try {
             $pdo->query('SELECT COUNT(*) FROM rendez_vous');
             return; // existe déjà

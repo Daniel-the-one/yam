@@ -222,15 +222,26 @@ $csrf_token = csrf_generate();
         </div>
         <?php endif; ?>
 
+        <?php if ($role === 'patient'): ?>
+        <a href="/patient/profil" class="icon-btn icon-btn--doctor"
+           title="Mon profil" aria-label="Mon profil">
+          <?php if (!empty($profile_photo)): ?>
+            <img src="<?= htmlspecialchars($profile_photo) ?>" alt="Photo de profil" class="avatar-img">
+          <?php else: ?>
+            <span class="avatar-letters"><?= htmlspecialchars($profile_init) ?></span>
+          <?php endif; ?>
+        </a>
+        <?php else: ?>
         <button class="icon-btn icon-btn--doctor" id="btn-medecin"
-                title="<?= $role === 'patient' ? 'Mon profil' : 'Profil du médecin' ?>"
-                aria-label="<?= $role === 'patient' ? 'Mon profil' : 'Profil du médecin' ?>">
+                title="Profil du médecin"
+                aria-label="Profil du médecin">
           <?php if (!empty($profile_photo)): ?>
             <img src="<?= htmlspecialchars($profile_photo) ?>" alt="Photo de profil" class="avatar-img">
           <?php else: ?>
             <span class="avatar-letters"><?= htmlspecialchars($profile_init) ?></span>
           <?php endif; ?>
         </button>
+        <?php endif; ?>
       </div>
     </header>
 

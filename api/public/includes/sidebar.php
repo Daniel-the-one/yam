@@ -22,6 +22,7 @@ if ($role === 'patient') {
     ['/patient/dossier',    'Mon dossier',        'bi-clipboard2-pulse'],
     ['/patient/ordonnances','Mes ordonnances',    'bi-capsule'],
     ['/patient/factures',   'Mes factures',       'bi-receipt'],
+    ['/patient/profil',     'Mon profil',         'bi-person-circle'],
   ];
 } else {
   $nav = [
