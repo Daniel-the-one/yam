@@ -45,7 +45,7 @@ function handle_photo_upload(): ?string {
         if (!is_dir($dir)) @mkdir($dir, 0755, true);
         $fname = 'patient_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
         if (file_put_contents($dir . '/' . $fname, $bin) !== false) {
-            return 'assets/uploads/' . $fname;
+            return '/assets/uploads/' . $fname;
         }
     }
     // Multipart
@@ -56,7 +56,7 @@ function handle_photo_upload(): ?string {
         if (!in_array($ext, ['jpg','jpeg','png','webp','gif'], true)) return null;
         $fname = 'patient_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
         if (move_uploaded_file($_FILES['photo']['tmp_name'], $dir . '/' . $fname)) {
-            return 'assets/uploads/' . $fname;
+            return '/assets/uploads/' . $fname;
         }
     }
     return null;

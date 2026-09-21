@@ -70,6 +70,10 @@ include __DIR__ . '/../includes/header.php';
     if ($init === '') $init = 'MD';
 
     $photo = $m['photo'] ?? null;
+    // Normaliser : les anciens chemins relatifs → absolu
+    if ($photo !== null && $photo !== '' && !str_starts_with($photo, '/')) {
+        $photo = '/' . $photo;
+    }
     $has_photo = ($photo !== null && $photo !== '');
     $bio_short = $m['bio'] ?? '';
     if (mb_strlen($bio_short) > 80) $bio_short = mb_substr($bio_short, 0, 80) . '…';

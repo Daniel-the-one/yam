@@ -58,7 +58,7 @@ if ($photo_data !== '') {
         echo json_encode(['ok'=>false,'message'=>'Échec de l\'enregistrement de la photo.']);
         exit;
     }
-    $rel = 'assets/uploads/' . $fname;
+    $rel = '/assets/uploads/' . $fname;
     try {
         $row = $pdo->query("SELECT id FROM medecins ORDER BY id LIMIT 1")->fetch();
         if ($row) {
@@ -88,7 +88,7 @@ if (!empty($_FILES['photo']) && is_uploaded_file($_FILES['photo']['tmp_name'])) 
         echo json_encode(['ok'=>false,'message'=>'Échec de l\'enregistrement de la photo.']);
         exit;
     }
-    $rel = 'assets/uploads/' . $fname;
+    $rel = '/assets/uploads/' . $fname;
     try {
         $row = $pdo->query("SELECT id FROM medecins ORDER BY id LIMIT 1")->fetch();
         if ($row) {

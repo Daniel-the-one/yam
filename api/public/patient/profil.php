@@ -39,6 +39,10 @@ $assurance   = $patient['assurance'] ?? '';
 $contact_urg = $patient['contact_urgence'] ?? '';
 $bio_patient = $patient['bio'] ?? '';
 $photo_profil = $patient['photo_profil'] ?? null;
+// Normaliser : les anciens chemins relatifs (assets/uploads/...) → absolu (/assets/uploads/...)
+if ($photo_profil !== null && $photo_profil !== '' && !str_starts_with($photo_profil, '/')) {
+    $photo_profil = '/' . $photo_profil;
+}
 $has_photo = ($photo_profil !== null && $photo_profil !== '');
 ?>
 

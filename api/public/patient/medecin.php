@@ -46,6 +46,10 @@ foreach (preg_split('/\s+/', $nom_complet) as $w) {
 if ($init === '') $init = 'MD';
 
 $photo = $medecin['photo'] ?? null;
+// Normaliser : les anciens chemins relatifs → absolu
+if ($photo !== null && $photo !== '' && !str_starts_with($photo, '/')) {
+    $photo = '/' . $photo;
+}
 $has_photo = ($photo !== null && $photo !== '');
 $bio = trim($medecin['bio'] ?? '');
 $horaires = trim($medecin['horaires'] ?? '');

@@ -36,6 +36,10 @@ if ($medecin_init === '') $medecin_init = 'DM';
 $profile_name = $medecin_nom;
 $profile_init  = $medecin_init;
 $profile_photo = $medecin['photo'] ?? null;
+// Normaliser chemins relatifs → absolus
+if ($profile_photo !== null && $profile_photo !== '' && !str_starts_with($profile_photo, '/')) {
+    $profile_photo = '/' . $profile_photo;
+}
 if ($role === 'patient') {
     $profile_name = $_SESSION['name'] ?? 'Patient';
     $profile_init  = '';
@@ -44,7 +48,19 @@ if ($role === 'patient') {
         if (mb_strlen($profile_init) >= 2) break;
     }
     if ($profile_init === '') $profile_init = 'PA';
+    // Charger la photo_profil du patient depuis la base
     $profile_photo = null;
+    if ($pdo && isset($_SESSION['patient_id']) && (int)$_SESSION['patient_id'] > 0) {
+        try {
+            $ppStmt = $pdo->prepare('SELECT photo_profil FROM patients WHERE id = :pid LIMIT 1');
+            $ppStmt->execute([':pid' => (int)$_SESSION['patient_id']]);
+            $ppRow = $ppStmt->fetch();
+            if ($ppRow && !empty($ppRow['photo_profil'])) {
+                $profile_photo = $ppRow['photo_profil'];
+                if (!str_starts_with($profile_photo, '/')) $profile_photo = '/' . $profile_photo;
+            }
+        } catch (Exception $e) {}
+    }
 }
 
 /* --------- Notifications (depuis la base, avec fallback démo) --------- */
