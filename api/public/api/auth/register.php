@@ -26,6 +26,20 @@ require_once __DIR__ . '/../patient.php';
 session_start_secure();
 ensure_users_table();
 
+// Rate limiting : max 5 inscriptions par IP toutes les 15 minutes.
+$ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+$rl = rate_limit_check('register:' . $ip, 5, 900);
+if (!$rl['allowed']) {
+    http_response_code(429);
+    header('Retry-After: ' . $rl['retry_after']);
+    echo json_encode([
+        'error'      => 'rate_limited',
+        'message'    => 'Trop de tentatives d\'inscription. Réessayez dans ' . $rl['retry_after'] . ' secondes.',
+        'retry_after' => $rl['retry_after'],
+    ]);
+    exit;
+}
+
 // Lecture du corps (JSON ou POST classique).
 $raw = file_get_contents('php://input');
 $body = [];

@@ -20,6 +20,7 @@ require_once __DIR__ . '/patient.php';
 
 // Garde d'authentification : 401 si non connecté.
 $user = auth_require();
+csrf_require();
 
 // Fiche patient liée au compte connecté (user_id, fallback téléphone).
 $patient = patient_for_user((int)$user['id'], $user['phone_number'] ?? null);

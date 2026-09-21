@@ -13,6 +13,7 @@ require_once __DIR__ . '/../config/db.php';
 // Garde d'authentification : 401 si non connecté.
 require_once __DIR__ . '/auth.php';
 auth_require();
+csrf_require();
 
 $pdo = db_connect();
 

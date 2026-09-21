@@ -115,6 +115,12 @@ if (!$notifs) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<?php
+// CSRF: génère le token et l'expose via meta tag pour le JS
+require_once __DIR__ . '/../api/auth.php';
+$csrf_token = csrf_generate();
+?>
+<meta name="csrf-token" content="<?= htmlspecialchars($csrf_token) ?>">
 <title><?= htmlspecialchars($page_title) ?> · KondjiPro</title>
 <link rel="stylesheet" href="/assets/css/style.css?v=5">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">

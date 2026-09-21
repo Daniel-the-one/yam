@@ -10,6 +10,7 @@ require_once __DIR__ . '/../config/db.php';
 // Garde d'authentification : 401 si non connecté.
 require_once __DIR__ . '/auth.php';
 auth_require();
+csrf_require();
 
 $patient    = (int)($_POST['patient'] ?? 0);
 $motif      = trim($_POST['motif'] ?? '');

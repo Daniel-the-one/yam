@@ -245,3 +245,112 @@ if (!function_exists('auth_redirect_guest')) {
         }
     }
 }
+
+/* ── CSRF Token ────────────────────────────────────────────── */
+
+if (!function_exists('csrf_generate')) {
+    /**
+     * Génère ou retourne le token CSRF de la session courante.
+     * Un token est attaché à la session et régénéré si absent.
+     */
+    function csrf_generate(): string {
+        session_start_secure();
+        if (empty($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        }
+        return $_SESSION['csrf_token'];
+    }
+}
+
+if (!function_exists('csrf_validate')) {
+    /**
+     * Valide un token CSRF envoyé via header X-CSRF-Token ou champ _token.
+     * Renvoie true si valide, false sinon.
+     */
+    function csrf_validate(?string $token): bool {
+        session_start_secure();
+        if (!$token || empty($_SESSION['csrf_token'])) return false;
+        return hash_equals($_SESSION['csrf_token'], $token);
+    }
+}
+
+if (!function_exists('csrf_require')) {
+    /**
+     * Garde CSRF : vérifie le token et renvoie 403 si invalide.
+     * À appeler avant tout traitement POST côté API.
+     */
+    function csrf_require(): void {
+        // GET, HEAD, OPTIONS n'ont pas besoin de CSRF
+        $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+        if (in_array($method, ['GET', 'HEAD', 'OPTIONS'], true)) return;
+
+        $token = $_SERVER['HTTP_X_CSRF_TOKEN']
+              ?? ($_POST['_token'] ?? null)
+              ?? ($_SERVER['HTTP_X_XSRF_TOKEN'] ?? null);
+
+        if (!csrf_validate($token)) {
+            http_response_code(403);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'error'   => 'csrf_invalid',
+                'message' => 'Token CSRF invalide ou manquant.',
+            ]);
+            exit;
+        }
+    }
+}
+
+/* ── Rate Limiting (file-based) ────────────────────────────── */
+
+if (!function_exists('rate_limit_check')) {
+    /**
+     * Vérifie et enregistre une tentative pour une clé donnée (ex. "login:IP").
+     * Utilise des fichiers temporaires dans /tmp/ pour éviter la dépendance BDD.
+     *
+     * @param string $key          Clé unique (ex. "login:1.2.3.4")
+     * @param int    $maxAttempts  Nombre max de tentatives autorisées
+     * @param int    $window       Fenêtre en secondes (défaut : 15 min)
+     * @return array{allowed: bool, remaining: int, retry_after: int}
+     */
+    function rate_limit_check(string $key, int $maxAttempts = 10, int $window = 900): array {
+        $dir = sys_get_temp_dir() . '/yam_ratelimit';
+        if (!is_dir($dir)) mkdir($dir, 0700, true);
+
+        $safeKey = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $key);
+        $file = $dir . '/' . $safeKey . '.json';
+
+        $now = time();
+        $attempts = [];
+
+        // Lecture des tentatives existantes
+        if (file_exists($file)) {
+            $raw = @file_get_contents($file);
+            $attempts = $raw ? json_decode($raw, true) : [];
+            if (!is_array($attempts)) $attempts = [];
+        }
+
+        // Nettoyage des tentatives expirées
+        $attempts = array_filter($attempts, fn($ts) => ($now - $ts) < $window);
+        $attempts = array_values($attempts);
+
+        $count = count($attempts);
+        $allowed = $count < $maxAttempts;
+
+        if ($allowed) {
+            $attempts[] = $now;
+            file_put_contents($file, json_encode($attempts), LOCK_EX);
+            $count++;
+        }
+
+        $remaining = max(0, $maxAttempts - $count);
+        $retryAfter = $count >= $maxAttempts
+            ? $window - ($now - ($attempts[0] ?? $now))
+            : 0;
+
+        return [
+            'allowed'     => $allowed,
+            'remaining'   => $remaining,
+            'retry_after' => max(0, $retryAfter),
+        ];
+    }
+}
