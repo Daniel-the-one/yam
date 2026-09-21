@@ -34,6 +34,9 @@ if ($id > 0) {
         $stmt->execute([':id' => $id]);
         $med = $stmt->fetch();
         if ($med) {
+            if (!empty($med['photo']) && !str_starts_with($med['photo'], '/')) {
+                $med['photo'] = '/' . $med['photo'];
+            }
             echo json_encode(['medecin' => $med], JSON_UNESCAPED_UNICODE);
         } else {
             http_response_code(404);
@@ -60,6 +63,11 @@ if ($phone !== '') {
         );
         $stmt->execute([':p' => '%' . $clean . '%']);
         $results = $stmt->fetchAll();
+        foreach ($results as &$m) {
+            if (!empty($m['photo']) && !str_starts_with($m['photo'], '/')) {
+                $m['photo'] = '/' . $m['photo'];
+            }
+        }
         echo json_encode(['results' => $results], JSON_UNESCAPED_UNICODE);
     } catch (PDOException $e) {
         http_response_code(500);
@@ -74,6 +82,11 @@ try {
         'SELECT id, prenom, nom, telephone, specialite, photo, bio, horaires, accepte_rdv
          FROM medecins ORDER BY prenom, nom'
     )->fetchAll();
+    foreach ($medecins as &$m) {
+        if (!empty($m['photo']) && !str_starts_with($m['photo'], '/')) {
+            $m['photo'] = '/' . $m['photo'];
+        }
+    }
     echo json_encode(['results' => $medecins], JSON_UNESCAPED_UNICODE);
 } catch (PDOException $e) {
     http_response_code(500);

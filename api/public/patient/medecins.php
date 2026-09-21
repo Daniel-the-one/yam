@@ -85,8 +85,14 @@ include __DIR__ . '/../includes/header.php';
     <!-- Photo + Nom -->
     <div style="display:flex; align-items:center; gap:14px;">
       <?php if ($has_photo): ?>
-        <img src="<?= htmlspecialchars($photo) ?>" alt="Photo" class="avatar-img"
-             style="width:56px; height:56px; border-radius:50%; object-fit:cover;">
+        <img src="<?= htmlspecialchars($photo) ?>" alt="" class="avatar-img"
+             style="width:56px; height:56px; border-radius:50%; object-fit:cover;"
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <span class="avatar-letters"
+              style="display:none; width:56px; height:56px; border-radius:50%; align-items:center; justify-content:center;
+                     background:rgba(16,185,129,.14); color:var(--accent-2); font-weight:700; font-size:18px; flex-shrink:0;">
+          <?= htmlspecialchars($init) ?>
+        </span>
       <?php else: ?>
         <span class="avatar-letters"
               style="width:56px; height:56px; border-radius:50%; display:flex; align-items:center; justify-content:center;

@@ -17,7 +17,28 @@ $pdo = db_connect();
 $medecin = null;
 if ($pdo) {
     try {
-        $medecin = $pdo->query("SELECT * FROM medecins ORDER BY id LIMIT 1")->fetch();
+        if (!empty($_SESSION['medecin_id'])) {
+            $stmt = $pdo->prepare("SELECT * FROM medecins WHERE id = ? LIMIT 1");
+            $stmt->execute([(int)$_SESSION['medecin_id']]);
+            $medecin = $stmt->fetch();
+        }
+        if (!$medecin && !empty($_SESSION['phone_number'])) {
+            $cleanPhone = preg_replace('/[^\d]/', '', $_SESSION['phone_number']);
+            $stmt = $pdo->prepare("SELECT * FROM medecins WHERE telephone = ? OR telephone = ? LIMIT 1");
+            $stmt->execute([$_SESSION['phone_number'], $cleanPhone]);
+            $medecin = $stmt->fetch();
+            if (!$medecin && strlen($cleanPhone) >= 8) {
+                $stmt = $pdo->prepare("SELECT * FROM medecins WHERE telephone LIKE ? LIMIT 1");
+                $stmt->execute(['%' . substr($cleanPhone, -8)]);
+                $medecin = $stmt->fetch();
+            }
+            if ($medecin) {
+                $_SESSION['medecin_id'] = (int)$medecin['id'];
+            }
+        }
+        if (!$medecin) {
+            $medecin = $pdo->query("SELECT * FROM medecins ORDER BY id LIMIT 1")->fetch();
+        }
     } catch (Exception $e) {}
 }
 if (!$medecin) {
@@ -185,6 +206,14 @@ $csrf_token = csrf_generate();
       <div class="form-row">
         <label for="medecin-spec">Spécialité</label>
         <input id="medecin-spec" name="specialite" class="input" value="<?= htmlspecialchars($medecin['specialite']) ?>">
+      </div>
+      <div class="form-row">
+        <label for="medecin-bio">Présentation / Biographie</label>
+        <textarea id="medecin-bio" name="bio" class="input" rows="2" placeholder="Présentation, parcours, diplômes…"><?= htmlspecialchars($medecin['bio'] ?? '') ?></textarea>
+      </div>
+      <div class="form-row">
+        <label for="medecin-horaires">Horaires de disponibilité</label>
+        <input id="medecin-horaires" name="horaires" class="input" placeholder="Ex : Lun - Ven : 08h00 - 17h00" value="<?= htmlspecialchars($medecin['horaires'] ?? '') ?>">
       </div>
 
       <div class="modal-actions">

@@ -29,6 +29,12 @@ function enrich($p) {
     [$c] = patient_avatar($p['nom']);
     $p['couleur'] = $c;
     $p['age']     = age_from_birth($p['date_naissance'] ?? null);
+    $photo = !empty($p['photo_profil']) ? $p['photo_profil'] : ($p['photo'] ?? null);
+    if (!empty($photo) && !str_starts_with($photo, '/')) {
+        $photo = '/' . $photo;
+    }
+    $p['photo']        = $photo;
+    $p['photo_profil'] = $photo;
     // Fallback : si la colonne uuid n'existe pas encore en base, on en
     // fabrique une stable à partir de l'id (le QR reste fonctionnel).
     if (empty($p['uuid'])) {

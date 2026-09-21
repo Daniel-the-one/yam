@@ -120,6 +120,7 @@ if ($patientId > 0) {
                 assurance = :assurance,
                 contact_urgence = :cu,
                 photo_profil = :pp,
+                photo = :pp,
                 bio = :bio
              WHERE id = :id'
         );
@@ -137,7 +138,7 @@ if ($patientId > 0) {
             ':bio'       => $bio !== '' ? $bio : null,
             ':id'        => $patientId,
         ]);
-        echo json_encode(['ok'=>true, 'message'=>'Profil mis à jour.', 'photo_profil'=>$photo_profil]);
+        echo json_encode(['ok'=>true, 'message'=>'Profil mis à jour.', 'photo_profil'=>$photo_profil, 'photo'=>$photo_profil]);
     } catch (Exception $e) {
         echo json_encode(['ok'=>false, 'message'=>$e->getMessage()]);
     }
@@ -160,8 +161,8 @@ $photo = handle_photo_upload();
 
 try {
     $ins = $pdo->prepare(
-        "INSERT INTO patients (uuid, nom, telephone, date_naissance, adresse, sexe, photo)
-         VALUES (?,?,?,?,?,?,?)"
+        "INSERT INTO patients (uuid, nom, telephone, date_naissance, adresse, sexe, photo, photo_profil)
+         VALUES (?,?,?,?,?,?,?,?)"
     );
     $ins->execute([
         uuid_v4(),
@@ -170,6 +171,7 @@ try {
         $date_naissance !== '' ? $date_naissance : null,
         $adresse !== '' ? $adresse : null,
         $sexe,
+        $photo,
         $photo,
     ]);
     $id = (int)$pdo->lastInsertId();

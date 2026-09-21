@@ -156,6 +156,7 @@ if (!function_exists('auth_attempt')) {
         if (!password_verify($password, $user['password'])) return null;
 
         // Régénération de l'ID de session (anti fixation).
+        session_start_secure();
         session_regenerate_id(true);
 
         $_SESSION['user_id']       = (int)$user['id'];
@@ -165,14 +166,28 @@ if (!function_exists('auth_attempt')) {
         $_SESSION['phone_number']  = $user['phone_number'] ?? '';
         $_SESSION['login_at']      = time();
 
-        // Lien compte → fiche patient (rôle patient) : par user_id, avec
-        // fallback sur le téléphone (fiche préexistante créée avant l'auth).
+        // Lien compte → fiche patient (rôle patient) ou médecin (rôle medecin)
         if (($user['role'] ?? 'patient') === 'patient') {
             require_once __DIR__ . '/patient.php';
             $patient = patient_for_user((int)$user['id'], $user['phone_number'] ?? null);
             $_SESSION['patient_id'] = $patient ? (int)$patient['id'] : null;
+            $_SESSION['medecin_id'] = null;
         } else {
             $_SESSION['patient_id'] = null;
+            $cleanPhone = preg_replace('/[^\d]/', '', $user['phone_number'] ?? '');
+            try {
+                $docStmt = $pdo->prepare("SELECT id FROM medecins WHERE telephone = ? OR telephone = ? LIMIT 1");
+                $docStmt->execute([$user['phone_number'] ?? '', $cleanPhone]);
+                $doc = $docStmt->fetch();
+                if (!$doc && strlen($cleanPhone) >= 8) {
+                    $docStmt = $pdo->prepare("SELECT id FROM medecins WHERE telephone LIKE ? LIMIT 1");
+                    $docStmt->execute(['%' . substr($cleanPhone, -8)]);
+                    $doc = $docStmt->fetch();
+                }
+                $_SESSION['medecin_id'] = $doc ? (int)$doc['id'] : null;
+            } catch (Exception $e) {
+                $_SESSION['medecin_id'] = null;
+            }
         }
 
         // Ne jamais exposer le hash dans la session.
@@ -185,6 +200,39 @@ if (!function_exists('auth_user')) {
     function auth_user(): ?array {
         session_start_secure();
         if (empty($_SESSION['user_id'])) return null;
+
+        $photo = null;
+        $pdo = db_connect();
+        if ($pdo) {
+            try {
+                if (($_SESSION['role'] ?? '') === 'medecin') {
+                    $medId = $_SESSION['medecin_id'] ?? null;
+                    if (!$medId && !empty($_SESSION['phone_number'])) {
+                        $clean = preg_replace('/[^\d]/', '', $_SESSION['phone_number']);
+                        $stmt = $pdo->prepare("SELECT id, photo FROM medecins WHERE telephone = ? OR telephone = ? OR telephone LIKE ? LIMIT 1");
+                        $stmt->execute([$_SESSION['phone_number'], $clean, '%' . substr($clean, -8)]);
+                        $mRow = $stmt->fetch();
+                        if ($mRow) {
+                            $_SESSION['medecin_id'] = (int)$mRow['id'];
+                            $photo = $mRow['photo'] ?? null;
+                        }
+                    } elseif ($medId) {
+                        $stmt = $pdo->prepare("SELECT photo FROM medecins WHERE id = ? LIMIT 1");
+                        $stmt->execute([(int)$medId]);
+                        $photo = $stmt->fetchColumn() ?: null;
+                    }
+                } elseif (!empty($_SESSION['patient_id'])) {
+                    $stmt = $pdo->prepare("SELECT photo_profil, photo FROM patients WHERE id = ? LIMIT 1");
+                    $stmt->execute([(int)$_SESSION['patient_id']]);
+                    $pRow = $stmt->fetch();
+                    $photo = ($pRow['photo_profil'] ?? null) ?: ($pRow['photo'] ?? null);
+                }
+                if ($photo && !str_starts_with($photo, '/')) {
+                    $photo = '/' . $photo;
+                }
+            } catch (Exception $e) {}
+        }
+
         return [
             'id'           => (int)$_SESSION['user_id'],
             'username'     => $_SESSION['username'] ?? '',
@@ -192,6 +240,8 @@ if (!function_exists('auth_user')) {
             'role'         => $_SESSION['role'] ?? 'patient',
             'phone_number' => $_SESSION['phone_number'] ?? '',
             'patient_id'   => isset($_SESSION['patient_id']) ? (int)$_SESSION['patient_id'] : null,
+            'medecin_id'   => isset($_SESSION['medecin_id']) ? (int)$_SESSION['medecin_id'] : null,
+            'photo'        => $photo,
             'login_at'     => $_SESSION['login_at'] ?? null,
         ];
     }
