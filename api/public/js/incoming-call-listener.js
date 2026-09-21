@@ -1,0 +1,163 @@
+// =========================================================
+// incoming-call-listener.js — Écoute les appels entrants en temps réel
+// via Pusher.com (SaaS) — le backend Laravel diffuse via le driver pusher.
+// =========================================================
+
+let PUSHER_APP_KEY = "local";
+let PUSHER_CLUSTER = "eu";
+
+function getHostConfig() {
+  const host = window.location.hostname || "192.168.1.80";
+  const isLocal = host === "localhost" || host === "127.0.0.1" || host.startsWith("192.168.");
+  const isTunnel = host.endsWith("trycloudflare.com");
+
+  if (isLocal) {
+    return {
+      host: host,
+      apiBase: `http://${host}:8000/api/v1`,
+    };
+  }
+
+  // Tunnel HTTPS (cloudflared) : l'API et le client sont servis depuis le
+  // même hôte.
+  if (isTunnel) {
+    return {
+      host: host,
+      apiBase: `${window.location.protocol}//${host}/api/v1`,
+    };
+  }
+
+  // Déploiement générique : l'API et le client sont servis depuis le même
+  // hôte (Railway, tunnel, VPS...). On dérive l'URL de l'hôte courant au
+  // lieu d'un domaine codé en dur.
+  return {
+    host: window.location.hostname,
+    apiBase: `${window.location.protocol}//${window.location.host}/api/v1`,
+  };
+}
+
+let hostConfig = getHostConfig();
+let SERVER_HOST = hostConfig.host;
+let API_BASE_URL = hostConfig.apiBase;
+let API_CONFIG_URL = `${API_BASE_URL}/config`;
+let API_RING_URL = `${API_BASE_URL}/call/ring`;
+let API_SIGNAL_URL = `${API_BASE_URL}/call/signal`;
+
+async function hydrateRuntimeConfig() {
+  try {
+    const res = await fetch(API_CONFIG_URL, { cache: "no-store" });
+    if (!res.ok) return;
+    const cfg = await res.json();
+
+    if (cfg.pusher?.app_key) PUSHER_APP_KEY = cfg.pusher.app_key;
+    if (cfg.pusher?.cluster) PUSHER_CLUSTER = cfg.pusher.cluster;
+
+    if (cfg.turn?.url) {
+      window.__TURN_CONFIG__ = {
+        url: cfg.turn.url,
+        username: cfg.turn.username || "",
+        credential: cfg.turn.credential || "",
+      };
+    }
+  } catch (err) {
+    console.warn("[runtime-config] impossible de charger la config distante", err);
+  }
+}
+
+// Lance le chargement de la config runtime immédiatement et expose la
+// promesse : les pages qui créent un client Pusher (incoming-call.html,
+// call.html) doivent l'attendre pour ne pas se connecter au mauvais hôte.
+window.__runtimeConfigReady = hydrateRuntimeConfig();
+
+// Garantir que device_id existe immédiatement.
+// Utilise la clé `yam_device_id` (cohérente avec le SPA spa-*.js), avec
+// migration depuis l'ancienne clé `device_id`.
+function getMyDeviceId() {
+  let id = localStorage.getItem("yam_device_id");
+  if (id) return id;
+  id = localStorage.getItem("device_id");
+  if (id) {
+    localStorage.setItem("yam_device_id", id);
+    localStorage.removeItem("device_id");
+    return id;
+  }
+  id = "device-" + Math.random().toString(36).substring(2, 10);
+  localStorage.setItem("yam_device_id", id);
+  return id;
+}
+let currentDeviceId = getMyDeviceId();
+
+async function registerCurrentDevice() {
+  const label = localStorage.getItem("device_label") || `Web ${currentDeviceId.slice(-4)}`;
+  try {
+    await fetch(`${hostConfig.apiBase}/devices/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        label,
+        device_id: currentDeviceId,
+        platform: "web",
+      }),
+    });
+    console.log("[device-registry] ✅ Enregistré côté serveur", currentDeviceId, label);
+  } catch (err) {
+    console.warn("[device-registry] Enregistrement du device impossible", err);
+  }
+}
+
+registerCurrentDevice();
+
+// Enregistre le Web Push (Service Worker + subscription) pour recevoir
+// les appels même quand l'onglet est fermé.
+if (typeof registerWebPush === "function") {
+  registerWebPush(hostConfig.apiBase, currentDeviceId);
+}
+
+function sdpNormalise(sdp) {
+  if (typeof sdp !== "string") return sdp;
+  return sdp.endsWith("\r\n") ? sdp : sdp + "\r\n";
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+  await window.__runtimeConfigReady;
+
+  // N'écouter les appels entrants globaux que si on n'est PAS déjà sur call.html ou incoming-call.html
+  const isCallPage = window.location.pathname.endsWith("/call") || 
+                     window.location.pathname.endsWith("/incoming-call");
+  if (isCallPage) return;
+
+  // Guard d'authentification : sans compte connecté, on ne peut pas recevoir
+  // d'appels (le backend route les appels vers les appareils d'un utilisateur).
+  if (!localStorage.getItem("auth_token")) {
+    console.warn("[incoming-call] Pas de session (auth_token absent) — écoute des appels entrants désactivée.");
+    return;
+  }
+
+  if (typeof Pusher === "undefined") {
+    console.warn("[incoming-call] Pusher JS n'est pas chargé");
+    return;
+  }
+
+  const pusher = new Pusher(PUSHER_APP_KEY, {
+    cluster: PUSHER_CLUSTER,
+    forceTLS: true,
+  });
+
+  pusher.connection.bind("state_change", (states) => {
+    console.log("[incoming-call] Pusher state:", states.current);
+  });
+
+  const channel = pusher.subscribe("device." + currentDeviceId);
+  console.log("[incoming-call] Écoute sur le canal device." + currentDeviceId);
+
+  channel.bind("incoming-call", (data) => {
+    console.log("[incoming-call] Appel entrant reçu:", data);
+    sessionStorage.setItem("incoming_call_id", data.call_id);
+    sessionStorage.setItem("incoming_call_from_device_id", data.from_device_id);
+    sessionStorage.setItem("incoming_call_from", data.from_username);
+    sessionStorage.setItem("incoming_call_type", data.type || "audio");
+    // Chemin relatif à la racine du site : fonctionne depuis les pages
+    // KondjiPro (/contact.php, /dashboard.php…) comme depuis /pages/.
+    window.location.href = "pages/incoming-call";
+  });
+});

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connexion — KondjiPro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css?v=6">
+</head>
+<body class="auth-body">
+  <main class="auth-split">
+
+    <!-- ===== Panneau gauche : branding + accroche + confiance ===== -->
+    <section class="auth-brand" aria-hidden="false">
+      <div class="auth-brand-inner">
+        <div class="auth-brand-logo">
+          <img src="../assets/img/kondjipro.png" alt="Logo KondjiPro" class="auth-brand-img">
+          <span class="auth-brand-name">Kondji<em>Pro</em></span>
+        </div>
+
+        <h1 class="auth-brand-title">La santé de vos patients,<br>simplifiée.</h1>
+        <p class="auth-brand-sub">
+          Gérez vos consultations, ordonnances, factures et encaissements
+          depuis une seule plateforme, pensée pour les professionnels de santé.
+        </p>
+
+        <ul class="auth-brand-stats">
+          <li>
+            <strong>12 500+</strong>
+            <span>Patients suivis</span>
+          </li>
+          <li>
+            <strong>98 %</strong>
+            <span>De satisfaction</span>
+          </li>
+          <li>
+            <strong>24/7</strong>
+            <span>Accès sécurisé</span>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ===== Panneau droit : formulaire ===== -->
+    <section class="auth-panel">
+      <div class="auth-card">
+
+        <!-- Onglets Patient / Médecin -->
+        <div class="auth-tabs" role="tablist" aria-label="Type de compte">
+          <button type="button" class="auth-tab active" data-role-tab="patient" role="tab" aria-selected="true">Patient</button>
+          <button type="button" class="auth-tab" data-role-tab="medecin" role="tab" aria-selected="false">Médecin</button>
+        </div>
+
+        <h2 class="auth-title" id="auth-title">Espace Patient</h2>
+        <p class="auth-subtitle" id="auth-subtitle">Accédez à vos rendez-vous et votre dossier médical.</p>
+
+        <!-- Zone d'erreur -->
+        <div id="form-error" class="form-error" role="alert"></div>
+
+        <form id="login-form" novalidate>
+          <div class="field">
+            <label for="identifier">Email ou numéro de téléphone</label>
+            <input type="text" id="identifier" name="identifier" autocomplete="username"
+                   placeholder="+228 90 12 34 56" required>
+          </div>
+
+          <div class="field">
+            <label for="password">Mot de passe</label>
+            <div class="password-wrap">
+              <input type="password" id="password" name="password" autocomplete="current-password" required>
+              <button type="button" class="password-toggle" data-target="password" aria-pressed="false">Afficher</button>
+            </div>
+          </div>
+
+          <div class="auth-options">
+            <label class="auth-check">
+              <input type="checkbox" name="remember" id="remember">
+              <span>Se souvenir de moi</span>
+            </label>
+            <a href="#" class="auth-link">Mot de passe oublié ?</a>
+          </div>
+
+          <button type="submit" class="btn btn--primary btn--block">Se connecter</button>
+        </form>
+
+        <p class="auth-footer">
+          Pas encore de compte ?
+          <a href="register" id="register-link" data-role="patient">Créer un compte</a>
+        </p>
+
+        <p class="auth-privacy">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="11" width="18" height="11" rx="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          Vos données médicales sont protégées et confidentielles.
+        </p>
+
+      </div>
+    </section>
+
+  </main>
+
+  <script src="../js/auth.js"></script>
+</body>
+</html>

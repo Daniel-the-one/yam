@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Créer un compte — KondjiPro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css?v=6">
+</head>
+<body class="auth-body">
+  <main class="auth-split">
+
+    <!-- ===== Panneau gauche : branding + accroche + confiance ===== -->
+    <section class="auth-brand" aria-hidden="false">
+      <div class="auth-brand-inner">
+        <div class="auth-brand-logo">
+          <img src="../assets/img/kondjipro.png" alt="Logo KondjiPro" class="auth-brand-img">
+          <span class="auth-brand-name">Kondji<em>Pro</em></span>
+        </div>
+
+        <h1 class="auth-brand-title">Rejoignez KondjiPro,<br>la santé connectée.</h1>
+        <p class="auth-brand-sub">
+          Créez votre compte en quelques secondes et accédez à votre espace
+          sécurisé : dossier médical, ordonnances, factures et encaissements.
+        </p>
+
+        <ul class="auth-brand-stats">
+          <li>
+            <strong>100 %</strong>
+            <span>Données chiffrées</span>
+          </li>
+          <li>
+            <strong>Simple</strong>
+            <span>Prise en main rapide</span>
+          </li>
+          <li>
+            <strong>Gratuit</strong>
+            <span>Pour les patients</span>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ===== Panneau droit : formulaire ===== -->
+    <section class="auth-panel">
+      <div class="auth-card">
+
+        <!-- Onglets Patient / Médecin -->
+        <div class="auth-tabs" role="tablist" aria-label="Type de compte">
+          <button type="button" class="auth-tab active" data-role-tab="patient" role="tab" aria-selected="true">Patient</button>
+          <button type="button" class="auth-tab" data-role-tab="medecin" role="tab" aria-selected="false">Médecin</button>
+        </div>
+
+        <h2 class="auth-title" id="auth-title">Créer un compte Patient</h2>
+        <p class="auth-subtitle" id="auth-subtitle">Inscrivez-vous pour accéder à vos rendez-vous et votre dossier médical.</p>
+
+        <!-- Zone d'erreur -->
+        <div id="form-error" class="form-error" role="alert"></div>
+
+        <form id="register-form" novalidate>
+          <input type="hidden" id="role" name="role" value="patient">
+
+          <div class="field">
+            <label for="name">Nom complet</label>
+            <input type="text" id="name" name="name" autocomplete="name" placeholder="Jean KOFFI" required>
+          </div>
+
+          <div class="field">
+            <label for="phone_number">Numéro de téléphone</label>
+            <input type="tel" id="phone_number" name="phone_number" autocomplete="tel"
+                   placeholder="+228 90 12 34 56" pattern="[\+]?[0-9\s\-]{7,30}" required>
+          </div>
+
+          <div class="field">
+            <label for="password">Mot de passe</label>
+            <div class="password-wrap">
+              <input type="password" id="password" name="password" autocomplete="new-password" minlength="8" required>
+              <button type="button" class="password-toggle" data-target="password" aria-pressed="false">Afficher</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="password-confirm">Confirmer le mot de passe</label>
+            <div class="password-wrap">
+              <input type="password" id="password-confirm" name="password-confirm" autocomplete="new-password" minlength="8" required>
+              <button type="button" class="password-toggle" data-target="password-confirm" aria-pressed="false">Afficher</button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn--primary btn--block">Créer mon compte</button>
+        </form>
+
+        <p class="auth-footer">
+          Déjà un compte ?
+          <a href="login">Se connecter</a>
+        </p>
+
+        <p class="auth-privacy">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="11" width="18" height="11" rx="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          Vos données médicales sont protégées et confidentielles.
+        </p>
+
+      </div>
+    </section>
+
+  </main>
+
+  <script src="../js/auth.js"></script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contacts — Appel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="app-body">
+  <div class="app-shell">
+
+    <header class="app-header">
+      <span class="app-header-title">Contacts</span>
+      <nav class="app-header-actions">
+        <a href="dial.html" class="icon-btn" aria-label="Composer" title="Composer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>
+          </svg>
+        </a>
+        <a href="history.html" class="icon-btn" aria-label="Historique" title="Historique">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/>
+          </svg>
+        </a>
+        <button id="btn-logout" class="icon-btn" aria-label="Se déconnecter" title="Se déconnecter">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+        </button>
+      </nav>
+    </header>
+
+    <div class="search-bar">
+      <input type="search" id="contact-search" placeholder="Rechercher un contact">
+    </div>
+
+    <!-- Affiché uniquement si l'appel à l'API échoue -->
+    <div id="contacts-error" class="form-error" role="alert"></div>
+
+    <!-- Affiché uniquement si la liste est vide -->
+    <p id="contacts-empty" class="empty-state" hidden>Aucun contact pour l'instant.</p>
+
+    <!-- Rempli dynamiquement par contacts.js -->
+    <ul id="contacts-list" class="contact-list"></ul>
+
+  </div>
+
+  <script src="https://js.pusher.com/8.4/pusher.min.js"></script>
+  <script src="../assets/js/kondjipro.js?v=1"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/contacts.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const btn = document.getElementById("btn-logout");
+      if (btn) btn.addEventListener("click", () => logout());
+    });
+  </script>
+</body>
+</html>

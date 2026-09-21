@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Yam</title>
+<style>
+  :root {
+    --page-bg: #eef0f3;
+    --surface: #ffffff;
+    --border: #e5e5e5;
+    --text: #171717;
+    --text-muted: #8a8a8a;
+    --accent: #2563eb;
+    --accent-soft: #eff4fe;
+    --danger: #b91c1c;
+    --accept: #16a34a;
+    --radius: 8px;
+    --mono: "SF Mono", "JetBrains Mono", ui-monospace, Menlo, monospace;
+    --sans: -apple-system, "Inter", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: var(--sans);
+    background: var(--page-bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 32px 20px;
+  }
+
+  /* ============ Fenêtre applicative centrée ============ */
+  .app-shell {
+    width: 100%;
+    max-width: 860px;
+    min-height: 600px;
+    max-height: 88vh;
+    background: var(--surface);
+    border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 16px 40px rgba(20,20,30,0.08);
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* ---- Sidebar ---- */
+  .sidebar {
+    width: 200px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--border);
+    padding: 20px 12px;
+    display: flex;
+    flex-direction: column;
+  }
+  .brand {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 10px 20px;
+  }
+  .brand-name { font-size: 14px; font-weight: 600; }
+  .conn { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: #d4d4d4; }
+  .dot.connected { background: var(--accent); }
+  .dot.error { background: var(--danger); }
+
+  .sidebar nav { display: flex; flex-direction: column; gap: 2px; }
+  .nav-btn {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 10px; border-radius: var(--radius);
+    border: none; background: none; cursor: pointer;
+    font-family: var(--sans); font-size: 13px; font-weight: 500; color: var(--text-muted);
+    text-align: left; position: relative;
+  }
+  .nav-btn:hover { background: #f5f5f5; }
+  .nav-btn.active { background: var(--accent-soft); color: var(--accent); }
+  .nav-btn.active svg { stroke: var(--accent); }
+  .nav-btn .badge {
+    margin-left: auto; background: var(--danger); color: #fff;
+    font-size: 10px; font-weight: 600; min-width: 16px; height: 16px;
+    border-radius: 8px; display: none; align-items: center; justify-content: center; padding: 0 4px;
+  }
+  .nav-btn .badge.show { display: flex; }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border);
+  }
+  .sidebar-footer .hint-tunnel { font-family: var(--sans); font-size: 10px; line-height: 1.4; margin: 6px 0 0; }
+  .sidebar-footer .hint-tunnel code { font-family: var(--mono); font-size: 9px; word-break: break-all; }
+
+  /* ---- Contenu principal ---- */
+  main { flex: 1; overflow-y: auto; padding: 32px 40px; min-width: 0; }
+  .view { display: none; }
+  .view.active { display: block; }
+
+  h2 { font-size: 17px; font-weight: 600; margin: 0 0 4px; }
+  .subtitle { font-size: 13px; color: var(--text-muted); margin: 0 0 24px; }
+  .section-label {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .04em; color: var(--text-muted); margin: 24px 0 10px;
+  }
+  .section-label:first-child { margin-top: 0; }
+
+  label { display: block; font-size: 12px; font-weight: 500; color: var(--text-muted); margin-bottom: 6px; }
+  input {
+    width: 100%; font-family: var(--mono); font-size: 13px;
+    padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface); color: var(--text); outline: none;
+  }
+  input:focus { border-color: var(--accent); }
+  input.sans { font-family: var(--sans); }
+
+  button {
+    font-family: var(--sans); font-size: 13px; font-weight: 500;
+    padding: 10px 14px; border-radius: var(--radius); border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); cursor: pointer;
+  }
+  button:hover { background: #f5f5f5; }
+  button.primary { background: var(--text); border-color: var(--text); color: #fff; }
+  button.primary:hover { background: #2b2b2b; }
+  button.icon-btn { padding: 8px; display: inline-flex; align-items: center; justify-content: center; }
+
+  .field { margin-bottom: 14px; max-width: 360px; }
+  .row { display: flex; gap: 8px; max-width: 420px; }
+  .row input { flex: 1; }
+
+  .device-id {
+    font-family: var(--mono); font-size: 13px; background: var(--page-bg);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 10px 12px; user-select: all; max-width: 320px;
+  }
+
+  .list-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface); margin-bottom: 8px; max-width: 480px;
+  }
+  .list-item .info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .list-item .name { font-size: 13px; font-weight: 500; }
+  .list-item .meta { font-size: 12px; color: var(--text-muted); font-family: var(--mono); }
+  .list-item .actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 13px; max-width: 480px; }
+
+  /* ---- Bandeaux d'état (vue Accueil) ---- */
+  .notice {
+    display: none; padding: 10px 12px; border-radius: var(--radius);
+    margin-bottom: 16px; font-size: 13px; line-height: 1.5; max-width: 420px;
+  }
+  .notice ul { margin: 8px 0 0; padding-left: 18px; }
+  .notice code { font-family: var(--mono); font-size: 11px; word-break: break-all; }
+  #secWarning { border: 1px solid #d97706; background: #fffbeb; color: #92400e; }
+  #mediaGuardNotice { border: 1px solid var(--danger); background: #fef2f2; color: var(--danger); }
+  #unlockBanner {
+    display: none; padding: 10px 12px; border: 1px solid var(--accent);
+    background: var(--accent-soft); border-radius: var(--radius); margin-bottom: 16px; font-size: 13px; max-width: 420px;
+  }
+
+  ::placeholder { color: #c7c7c7; }
+
+  /* ============ Overlay + carte d'appel centrée (façon Meet) ============ */
+  .call-overlay {
+    display: none;
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(15,15,20,0.55);
+    align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .call-overlay.active { display: flex; }
+
+  .call-card {
+    width: 100%; max-width: 360px;
+    background: radial-gradient(circle at 50% 25%, #2a2a3a 0%, #16161f 75%);
+    border-radius: 20px;
+    color: #fff;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 40px 24px 32px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.4);
+  }
+
+  .call-topinfo { font-size: 12px; letter-spacing: .04em; color: rgba(255,255,255,0.5); text-transform: uppercase; }
+
+  .avatar-wrap { position: relative; width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; margin-top: 28px; }
+  .avatar-circle {
+    width: 104px; height: 104px; border-radius: 50%; background: #3a3a4a;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 36px; font-weight: 600; z-index: 2; border: 2px solid rgba(255,255,255,0.15);
+  }
+  .ring { position: absolute; inset: 0; border-radius: 50%; border: 1px solid rgba(37,99,235,0.5); animation: pulse-ring 2.4s ease-out infinite; }
+  .ring.r2 { animation-delay: .6s; }
+  .ring.r3 { animation-delay: 1.2s; }
+  @keyframes pulse-ring { 0% { transform: scale(0.85); opacity: .7; } 100% { transform: scale(1.9); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .ring { animation: none; opacity: .3; } }
+
+  .call-name { margin-top: 18px; font-size: 19px; font-weight: 600; }
+  .call-meta { margin-top: 4px; font-size: 13px; font-family: var(--mono); color: rgba(255,255,255,0.5); }
+
+  .call-controls-mid { display: flex; gap: 18px; margin-top: 32px; }
+  .ctrl-btn {
+    width: 46px; height: 46px; border-radius: 50%; background: rgba(255,255,255,0.1);
+    border: none; display: flex; align-items: center; justify-content: center; color: #fff; cursor: pointer;
+  }
+  .ctrl-btn.on { background: #fff; color: #16161f; }
+
+  .call-actions-bottom { margin-top: 32px; display: flex; gap: 48px; align-items: center; }
+  .call-action {
+    width: 56px; height: 56px; border-radius: 50%; border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+  }
+  .call-action.decline, .call-action.hangup { background: var(--danger); }
+  .call-action.accept { background: var(--accept); }
+  .call-action-label { font-size: 11px; color: rgba(255,255,255,0.6); text-align: center; margin-top: 8px; }
+  .call-action-group { display: flex; flex-direction: column; align-items: center; }
+
+  /* ---- Repli mobile : sidebar devient nav du bas ---- */
+  @media (max-width: 720px) {
+    body { padding: 0; align-items: stretch; }
+    .app-shell { max-width: none; min-height: 100vh; max-height: none; border-radius: 0; box-shadow: none; flex-direction: column; }
+    .sidebar { width: 100%; flex-direction: row; align-items: center; border-right: none; border-bottom: 1px solid var(--border); padding: 10px 14px; }
+    .brand { padding: 0; flex: 1; }
+    .sidebar nav { flex-direction: row; margin-left: auto; }
+    .nav-btn { flex-direction: column; gap: 3px; font-size: 10px; padding: 6px 12px; }
+    .sidebar-footer { display: none; }
+    main { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-name">Yam</span>
+      <div class="conn"><span class="dot" id="connDot"></span><span id="connText">Non connecté</span></div>
+    </div>
+
+    <nav>
+      <button class="nav-btn active" id="nav-home" onclick="showView('home')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
+        Accueil
+      </button>
+      <button class="nav-btn" id="nav-contacts" onclick="showView('contacts')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>
+        Contacts
+      </button>
+      <button class="nav-btn" id="nav-missed" onclick="showView('missed')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        Appels
+        <span class="badge" id="missedBadge">0</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div style="margin-bottom:8px; color: var(--text);">Serveur</div>
+      <input id="serverUrl" class="sans" style="width:100%; font-size:11px; padding:6px 8px; margin-bottom:6px;" placeholder="http://dam.local:8000">
+      <button onclick="reconnecter()" style="width:100%; font-size:11px; padding:6px 8px;">Connecter</button>
+      <p class="hint-tunnel">Tunnel HTTPS ? Ajoutez <code>?ws=wss://…trycloudflare.com</code> à l'URL de la page (mémorisé).</p>
+    </div>
+  </aside>
+
+  <main>
+    <!-- ACCUEIL -->
+    <div class="view active" id="view-home">
+      <h2>Accueil</h2>
+      <p class="subtitle">Ton identifiant et appel ponctuel</p>
+
+      <div class="section-label">Mon identifiant</div>
+      <div class="device-id" id="myId"></div>
+
+      <div class="section-label">Appel ponctuel</div>
+      <div class="notice" id="staleConfigNotice" style="border:1px solid #d97706;background:#fffbeb;color:#92400e;"></div>
+      <div class="notice" id="secWarning"></div>
+      <div class="notice" id="mediaGuardNotice"></div>
+      <div id="unlockBanner">🔊 Clique n'importe où sur la page pour activer la sonnerie</div>
+      <div class="field">
+        <label for="targetId">Device ID cible</label>
+        <input id="targetId" placeholder="device-a1b2c3d4">
+      </div>
+      <button class="primary" onclick="appelerAppareil(document.getElementById('targetId').value.trim(), 'Testeur')">Appeler</button>
+    </div>
+
+    <!-- CONTACTS -->
+    <div class="view" id="view-contacts">
+      <h2>Contacts</h2>
+      <p class="subtitle">Appareils enregistrés — un clic pour appeler</p>
+
+      <div class="field">
+        <label for="newContactName">Nom</label>
+        <input id="newContactName" class="sans" placeholder="Téléphone de Dan">
+      </div>
+      <div class="field">
+        <label for="newContactId">Device ID</label>
+        <input id="newContactId" placeholder="device-a1b2c3d4">
+      </div>
+      <button class="primary" onclick="ajouterContact()" style="margin-bottom:20px;">Enregistrer le contact</button>
+
+      <div id="contactsList"></div>
+    </div>
+
+    <!-- APPELS MANQUÉS -->
+    <div class="view" id="view-missed">
+      <h2>Appels manqués</h2>
+      <p class="subtitle">Historique des appels non décrochés</p>
+      <div id="missedList"></div>
+    </div>
+  </main>
+</div>
+
+<!-- ============ Overlay appel entrant ============ -->
+<div class="call-overlay" id="incomingCallOverlay">
+  <div class="call-card">
+    <div class="call-topinfo">Appel entrant</div>
+    <div class="avatar-wrap">
+      <div class="ring"></div><div class="ring r2"></div><div class="ring r3"></div>
+      <div class="avatar-circle" id="incomingAvatarInitial">?</div>
+    </div>
+    <div class="call-name" id="incomingName">—</div>
+    <div class="call-meta" id="incomingMeta">—</div>
+
+    <div class="call-actions-bottom">
+      <div class="call-action-group">
+        <button class="call-action decline" onclick="refuserAppel()">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#fff"><path d="M21.6 16.2l-3.3-1.3a1.5 1.5 0 0 0-1.7.4l-1.4 1.7a13 13 0 0 1-5.9-5.9l1.7-1.4a1.5 1.5 0 0 0 .4-1.7L10 4.7a1.5 1.5 0 0 0-1.6-.9l-3 0.5A1.6 1.6 0 0 0 4 6c0 9.9 8.1 18 18 18a1.6 1.6 0 0 0 1.7-1.4l.5-3a1.5 1.5 0 0 0-.6-1.4z" transform="rotate(135 12 12)"/></svg>
+        </button>
+        <div class="call-action-label">Refuser</div>
+      </div>
+      <div class="call-action-group">
+        <button class="call-action accept" onclick="decrocherAppel()">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#fff"><path d="M21.6 16.2l-3.3-1.3a1.5 1.5 0 0 0-1.7.4l-1.4 1.7a13 13 0 0 1-5.9-5.9l1.7-1.4a1.5 1.5 0 0 0 .4-1.7L10 4.7a1.5 1.5 0 0 0-1.6-.9l-3 0.5A1.6 1.6 0 0 0 4 6c0 9.9 8.1 18 18 18a1.6 1.6 0 0 0 1.7-1.4l.5-3a1.5 1.5 0 0 0-.6-1.4z"/></svg>
+        </button>
+        <div class="call-action-label">Accepter</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ Overlay en communication ============ -->
+<div class="call-overlay" id="activeCallOverlay">
+  <div class="call-card">
+    <div class="call-topinfo" id="activeCallStatus">En communication</div>
+    <div class="avatar-wrap">
+      <div class="ring"></div><div class="ring r2"></div><div class="ring r3"></div>
+      <div class="avatar-circle" id="activeAvatarInitial">?</div>
+    </div>
+    <div class="call-name" id="activeName">—</div>
+    <div class="call-meta" id="activeTimer">00:00</div>
+
+    <div class="call-controls-mid">
+      <button class="ctrl-btn" id="speakerBtn" onclick="toggleSpeaker()" title="Haut-parleur">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>
+      </button>
+      <button class="ctrl-btn" id="muteBtn" onclick="toggleMute()" title="Micro">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4"/></svg>
+      </button>
+      <button class="ctrl-btn" title="Clavier">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h.01M12 9h.01M16 9h.01M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01M16 17h.01"/></svg>
+      </button>
+    </div>
+
+    <div class="call-actions-bottom" style="gap:0;">
+      <div class="call-action-group">
+        <button class="call-action hangup" onclick="raccrocherAppel()">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#fff"><path d="M21.6 16.2l-3.3-1.3a1.5 1.5 0 0 0-1.7.4l-1.4 1.7a13 13 0 0 1-5.9-5.9l1.7-1.4a1.5 1.5 0 0 0 .4-1.7L10 4.7a1.5 1.5 0 0 0-1.6-.9l-3 0.5A1.6 1.6 0 0 0 4 6c0 9.9 8.1 18 18 18a1.6 1.6 0 0 0 1.7-1.4l.5-3a1.5 1.5 0 0 0-.6-1.4z" transform="rotate(135 12 12)"/></svg>
+        </button>
+        <div class="call-action-label">Raccrocher</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Flux audio distant (voix du correspondant) -->
+<audio id="remoteAudio" autoplay></audio>
+<!-- Sonnerie entrante : son freesound_community fourni -->
+<audio id="ringtoneAudio" src="/sounds/ringtone-freesound.mp3" loop preload="auto"></audio>
+<!-- Retour d'appel (ringback) entendu par l'APPELANT avant décrochage -->
+<audio id="ringbackAudio" src="/sounds/ringback.wav" loop preload="auto"></audio>
+
+<script src="/vendor/pusher.min.js"></script>
+<script>
+// ---------- Identité & stockage ----------
+let myDeviceId = localStorage.getItem('device_id');
+if (!myDeviceId) {
+  myDeviceId = 'device-' + Math.random().toString(36).substring(2, 10);
+  localStorage.setItem('device_id', myDeviceId);
+}
+document.getElementById('myId').textContent = myDeviceId;
+
+// ⚠️ Les tunnels trycloudflare changent de domaine à chaque relance :
+// le localStorage repart de zéro et l'ID change. La solution est ce
+// NOM LISIBLE enregistré côté SERVEUR : il survit aux changements de
+// domaine et remet à jour le device_id associé à chaque démarrage.
+let monLabel = localStorage.getItem('my_label');
+if (!monLabel) {
+  const defaut = 'Appareil-' + myDeviceId.slice(-4);
+  monLabel = prompt('Nom de cet appareil (ex : « Téléphone de Dan », « PC bureau ») :', defaut) || defaut;
+  localStorage.setItem('my_label', monLabel);
+}
+
+let baseUrl = localStorage.getItem('server_url') || window.location.origin;
+document.getElementById('serverUrl').value = baseUrl;
+
+function getContacts() { return JSON.parse(localStorage.getItem('contacts') || '[]'); }
+function saveContacts(list) { localStorage.setItem('contacts', JSON.stringify(list)); }
+function getMissedCalls() { return JSON.parse(localStorage.getItem('missed_calls') || '[]'); }
+function saveMissedCalls(list) { localStorage.setItem('missed_calls', JSON.stringify(list)); }
+
+// ---------- Registre serveur des appareils ----------
+let derniersAppareils = []; // cache mémoire pour les libellés (appels manqués…)
+
+async function apiDevices(path = '', opts = {}) {
+  const res = await fetch(baseUrl + '/api/v1/devices' + path, opts);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+
+async function enregistrerMonAppareil() {
+  try {
+    await apiDevices('/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ label: monLabel, device_id: myDeviceId, platform: 'web' }),
+    });
+    console.log('[devices] ✅ Enregistré côté serveur :', monLabel, '=', myDeviceId);
+  } catch (e) {
+    console.warn('[devices] Enregistrement serveur impossible :', e.message);
+  }
+}
+
+async function chargerAppareils() {
+  try {
+    const data = await apiDevices();
+    derniersAppareils = data.devices || [];
+    // Migration silencieuse des anciens contacts locaux vers le serveur
+    const locaux = getContacts();
+    for (const c of locaux) {
+      await apiDevices('/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label: c.name, device_id: c.device_id }),
+      }).catch(() => {});
+    }
+    if (locaux.length) saveContacts([]);
+    renderContacts(derniersAppareils);
+  } catch (e) {
+    console.warn('[devices] Liste serveur indisponible, repli cache local :', e.message);
+    renderContacts(getContacts().map(c => ({ label: c.name, device_id: c.device_id })));
+  }
+}
+
+// ---------- Navigation ----------
+function showView(name) {
+  ['home', 'contacts', 'missed'].forEach(v => {
+    document.getElementById('view-' + v).classList.toggle('active', v === name);
+    document.getElementById('nav-' + v).classList.toggle('active', v === name);
+  });
+  if (name === 'contacts') chargerAppareils();
+  if (name === 'missed') renderMissed();
+}
+
+// ---------- Contacts (source de vérité : serveur) ----------
+async function ajouterContact() {
+  const name = document.getElementById('newContactName').value.trim();
+  const id = document.getElementById('newContactId').value.trim();
+  if (!name || !id) return;
+  try {
+    await apiDevices('/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ label: name, device_id: id }),
+    });
+    document.getElementById('newContactName').value = '';
+    document.getElementById('newContactId').value = '';
+    chargerAppareils();
+  } catch (e) {
+    alert("Impossible d'enregistrer le contact côté serveur : " + e.message);
+  }
+}
+async function supprimerContact(id) {
+  try { await apiDevices('/' + encodeURIComponent(id), { method: 'DELETE' }); } catch (_) {}
+  saveContacts(getContacts().filter(c => c.device_id !== id));
+  chargerAppareils();
+}
+function iconCall() {
+  return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1L8 10a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7a2 2 0 0 1 1.7 2z"/></svg>`;
+}
+function iconTrash() {
+  return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>`;
+}
+function renderContacts(devices) {
+  const el = document.getElementById('contactsList');
+  if (!devices || devices.length === 0) {
+    el.innerHTML = `<div class="empty-state">Aucun appareil enregistré pour l'instant.</div>`;
+    return;
+  }
+  el.innerHTML = devices.map(c => `
+    <div class="list-item">
+      <div class="info"><span class="name">${c.label}</span><span class="meta">${c.device_id}</span></div>
+      <div class="actions">
+        <button class="icon-btn" title="Appeler" onclick="appelerAppareil('${c.device_id}', '${c.label}')">${iconCall()}</button>
+        <button class="icon-btn" title="Supprimer" onclick="supprimerContact('${c.device_id}')">${iconTrash()}</button>
+      </div>
+    </div>`).join('');
+}
+
+// ---------- Appels manqués ----------
+function logMissedCall(fromDeviceId, fromUsername) {
+  const list = getMissedCalls();
+  list.unshift({ device_id: fromDeviceId, username: fromUsername, at: new Date().toISOString() });
+  saveMissedCalls(list.slice(0, 50));
+  updateMissedBadge();
+}
+function clearMissedCall(index) {
+  const list = getMissedCalls();
+  list.splice(index, 1);
+  saveMissedCalls(list);
+  renderMissed();
+  updateMissedBadge();
+}
+function updateMissedBadge() {
+  const count = getMissedCalls().length;
+  const badge = document.getElementById('missedBadge');
+  badge.textContent = count > 9 ? '9+' : count;
+  badge.classList.toggle('show', count > 0);
+}
+function renderMissed() {
+  const el = document.getElementById('missedList');
+  const list = getMissedCalls();
+  if (list.length === 0) {
+    el.innerHTML = `<div class="empty-state">Aucun appel manqué.</div>`;
+    return;
+  }
+  el.innerHTML = list.map((m, i) => {
+    const contact = derniersAppareils.find(c => c.device_id === m.device_id);
+    const label = contact ? contact.label : m.device_id;
+    const time = new Date(m.at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    return `
+      <div class="list-item">
+        <div class="info"><span class="name">${label}</span><span class="meta">${time}</span></div>
+        <div class="actions">
+          <button class="icon-btn" title="Rappeler" onclick="appelerAppareil('${m.device_id}', '${label}')">${iconCall()}</button>
+          <button class="icon-btn" title="Effacer" onclick="clearMissedCall(${i})">${iconTrash()}</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// =========================================================
+// ÉTAT GLOBAL WEBRTC
+// =========================================================
+let pusher = null;
+let monCanal = null;
+let currentCall = null;        // { fromDeviceId, fromUsername } côté receveur
+let appelEnCoursLabel = null;  // nom affiché côté appelant
+let peerConnection = null;
+let localStream = null;
+let micTrack = null;
+let pendingOffer = null;       // offre reçue avant le décrochage
+let pendingCandidates = [];    // candidates reçues avant que la PC soit prête
+let remotePeerId = null;
+
+function setStatus(text, state) {
+  document.getElementById('connDot').className = 'dot' + (state ? ' ' + state : '');
+  document.getElementById('connText').textContent = text;
+}
+
+// ---------- Avertissement contexte sécurisé (micro bloqué en HTTP) ----------
+if (!window.isSecureContext && !['localhost', '127.0.0.1'].includes(location.hostname)) {
+  const w = document.getElementById('secWarning');
+  w.style.display = 'block';
+  w.innerHTML = '<strong>Sonnerie OK, mais micro bloqué en HTTP.</strong> '
+    + 'Pour la voix : ouvre cette page via le tunnel HTTPS (<code>?ws=…</code>, voir pied de sidebar).';
+}
+
+// =========================================================
+// GUARD MICRO — Chrome masque navigator.mediaDevices hors contexte
+// sécurisé (HTTPS ou localhost). On vérifie AVANT tout getUserMedia
+// et on affiche un message actionnable au lieu de crasher.
+// =========================================================
+function checkMediaSupport() {
+  const isFake = new URLSearchParams(location.search).get('fake') === '1';
+  if (isFake) return true; // le mode synthétique ne touche jamais mediaDevices
+
+  const secure = window.isSecureContext;
+  const hasApi = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+
+  if (secure && hasApi) return true;
+
+  showMediaGuardNotice(secure, hasApi);
+  return false;
+}
+
+function showMediaGuardNotice(secure, hasApi) {
+  const el = document.getElementById('mediaGuardNotice');
+  el.innerHTML = `
+    <strong>Micro indisponible sur cet appareil/navigateur.</strong><br>
+    Chrome masque l'accès au micro hors contexte sécurisé (HTTPS ou localhost).
+    Contexte actuel : ${location.protocol} · secure=${secure} · api=${hasApi}<br><br>
+    Deux options :
+    <ul>
+      <li><code>chrome://flags/#unsafely-treat-insecure-origin-as-secure</code>
+          → ajouter <code>${location.origin}</code>, redémarrer Chrome (test rapide, cet appareil seulement)</li>
+      <li>Tunnel HTTPS (<code>./scripts/tunnel.sh</code>) → fonctionne sur tous les appareils</li>
+    </ul>`;
+  el.style.display = 'block';
+}
+
+// =========================================================
+// SONNERIE — fichier mp3 en primaire, repli Web Audio si
+// l'autoplay est bloqué ou le fichier absent.
+// =========================================================
+const ringtoneAudio = document.getElementById('ringtoneAudio');
+let audioCtx = null;
+let webAudioRingInt = null;
+let sonnerieActive = false;
+let audioUnlocked = false;
+
+function ensureAudioContext() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'running') { audioUnlocked = true; updateUnlockBanner(); return audioCtx; }
+  audioCtx.resume()
+    .then(() => { audioUnlocked = audioCtx.state === 'running'; updateUnlockBanner(); })
+    .catch(() => { audioUnlocked = false; updateUnlockBanner(); });
+  return audioCtx;
+}
+
+function updateUnlockBanner() {
+  document.getElementById('unlockBanner').style.display = audioUnlocked ? 'none' : 'block';
+}
+
+function startWebAudioRing() {
+  stopWebAudioRing();
+  const beep = () => {
+    if (!audioCtx || audioCtx.state !== 'running') return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.3);
+  };
+  beep();
+  webAudioRingInt = setInterval(beep, 1000);
+}
+function stopWebAudioRing() {
+  if (webAudioRingInt) { clearInterval(webAudioRingInt); webAudioRingInt = null; }
+}
+
+// ---- Sonnerie de RETOUR côté appelant (ringback) ----
+// Fichier audio en primaire (standard téléphonique 440 Hz),
+// repli bips Web Audio si l'autoplay bloque le fichier.
+const ringbackAudio = document.getElementById('ringbackAudio');
+let ringbackInt = null;
+
+function startRingback() {
+  stopRingback();
+  ensureAudioContext();
+  ringbackAudio.currentTime = 0;
+  ringbackAudio.play().catch(() => {
+    // Autoplay bloqué ou fichier absent → bips de secours
+    ringbackInt = setInterval(() => {
+      if (!audioCtx || audioCtx.state !== 'running') return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.frequency.value = 425;
+      gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.4);
+    }, 1500);
+  });
+}
+
+function stopRingback() {
+  try { ringbackAudio.pause(); ringbackAudio.currentTime = 0; } catch (_) {}
+  if (ringbackInt) { clearInterval(ringbackInt); ringbackInt = null; }
+}
+
+function startRingtone() {
+  stopRingtone();
+  sonnerieActive = true;
+  ringtoneAudio.currentTime = 0;
+  ringtoneAudio.play()
+    .then(() => { audioUnlocked = true; updateUnlockBanner(); })
+    .catch(() => startWebAudioRing()); // autoplay bloqué ou fichier absent
+}
+// Si l'élément échoue en cours de route (404, décodage), on bascule aussi.
+ringtoneAudio.addEventListener('error', () => { if (sonnerieActive) startWebAudioRing(); });
+
+function stopRingtone() {
+  sonnerieActive = false;
+  ringtoneAudio.pause();
+  ringtoneAudio.currentTime = 0;
+  stopWebAudioRing();
+}
+
+// Débloque au premier tap n'importe où sur la page,
+// et rattrape une sonnerie qui attendait le déblocage.
+document.addEventListener('pointerdown', () => {
+  ensureAudioContext();
+  if (!audioUnlocked) {
+    // Astuce : un play() immédiatement suivi d'un pause() déverrouille
+    // l'élément audio pour les prochaines sonneries.
+    ringtoneAudio.play()
+      .then(() => { audioUnlocked = true; })
+      .catch(() => {})
+      .finally(() => { ringtoneAudio.pause(); ringtoneAudio.currentTime = 0; updateUnlockBanner(); });
+  }
+  if (audioUnlocked && !sonnerieActive &&
+      document.getElementById('incomingCallOverlay').classList.contains('active')) {
+    startRingtone();
+  }
+});
+
+// =========================================================
+// MICRO (avec mode test ?fake=1 : tonalité au lieu du micro,
+// pour tester sans autorisation micro ni HTTPS)
+// =========================================================
+async function obtenirMicro() {
+if (new URLSearchParams(location.search).get('fake') === '1') {
+    ensureAudioContext();
+    const dest = audioCtx.createMediaStreamDestination();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.frequency.value = 440;
+    gain.gain.value = 0.03;
+    osc.connect(gain).connect(dest);
+    osc.start();
+    micTrack = dest.stream.getAudioTracks()[0] || null;
+    return dest.stream;
+  }
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  micTrack = stream.getAudioTracks()[0] || null;
+  return stream;
+}
+
+// =========================================================
+// CONNEXION REVERB
+// =========================================================
+// Les tunnels trycloudflare changent d'URL à CHAQUE relance de
+// tunnel.sh. Si server_url / ws_url mémorisés pointent vers un
+// ancien tunnel, plus rien ne fonctionne (ni sonnerie ni voix)
+// sans aucun message clair. On détecte et on explique.
+function afficherAvisPerime(html) {
+  const el = document.getElementById('staleConfigNotice');
+  if (!el) return;
+  el.innerHTML = html;
+  el.style.display = 'block';
+}
+
+function hostnameDe(urlStr) {
+  try { return new URL(urlStr).hostname; } catch (_) { return ''; }
+}
+
+function reconnecter() {
+  baseUrl = document.getElementById('serverUrl').value.trim().replace(/\/$/, '');
+  localStorage.setItem('server_url', baseUrl);
+  if (pusher) pusher.disconnect();
+
+  const url = new URL(baseUrl);
+
+  // Surcharge du WebSocket (utile en tunnel HTTPS : l'API et Reverb
+  // n'ont alors pas le même domaine). Priorité : ?ws=… puis localStorage.
+  // Le paramètre ?ws= est mémorisé : les chargements suivants peuvent
+  // se faire sans paramètres (pratique sur mobile).
+  const wsParam = new URLSearchParams(location.search).get('ws');
+  if (wsParam) localStorage.setItem('ws_url', wsParam);
+  const wsOverride = wsParam || localStorage.getItem('ws_url');
+
+  // ---- Détection de configuration périmée ----
+  const surTunnel = /trycloudflare\.com$/.test(location.hostname);
+  if (surTunnel && wsOverride && !wsParam &&
+      hostnameDe(wsOverride) !== location.hostname) {
+    afficherAvisPerime(
+      '<strong>⚠️ WebSocket mémorisé probablement périmé.</strong> ' +
+      'La page est servie depuis <code>' + location.hostname + '</code> mais le WS mémorisé pointe vers <code>' +
+      hostnameDe(wsOverride) + '</code> (ancien tunnel ?). ' +
+      'Rouvre l\'URL COMPLÈTE affichée par <code>./scripts/tunnel.sh</code> (avec <code>?ws=…</code>) ou ' +
+      '<button onclick="localStorage.removeItem(\'ws_url\');location.reload()" style="padding:4px 8px;">oublier le WS mémorisé</button>'
+    );
+  }
+  if (surTunnel && baseUrl && hostnameDe(baseUrl) !== location.hostname &&
+      !['localhost', '127.0.0.1'].includes(hostnameDe(baseUrl))) {
+    afficherAvisPerime(
+      '<strong>⚠️ Serveur mémorisé ≠ hôte de la page.</strong> L\'API appelée est <code>' +
+      hostnameDe(baseUrl) + '</code> alors que la page vient de <code>' + location.hostname + '</code>. ' +
+      'Si ce serveur est un ancien tunnel : ' +
+      '<button onclick="localStorage.removeItem(\'server_url\');location.reload()" style="padding:4px 8px;">revenir au serveur de cette page</button>'
+    );
+  }
+
+  let wsHost, wsPort, wssPort, forceTLS, transports;
+  if (wsOverride) {
+    const u = new URL(wsOverride);
+    const secure = u.protocol === 'wss:' || u.protocol === 'https:';
+    wsHost = u.hostname;
+    forceTLS = secure;
+    wsPort = secure ? undefined : (u.port ? Number(u.port) : 80);
+    wssPort = secure ? (u.port ? Number(u.port) : 443) : undefined;
+    transports = secure ? ['ws', 'wss'] : ['ws'];
+  } else {
+    // Comportement LAN par défaut : même hôte que l'API, port 8080.
+    wsHost = url.hostname;
+    const isHttps = url.protocol === 'https:';
+    forceTLS = isHttps;
+    wsPort = isHttps ? undefined : 8080;
+    wssPort = isHttps ? 443 : undefined;
+    transports = isHttps ? ['ws', 'wss'] : ['ws'];
+  }
+
+  Pusher.logToConsole = true;
+  pusher = new Pusher('local', {
+    cluster: 'mt1', // requis par la librairie, sans effet réel car wsHost est fourni
+    wsHost: wsHost,
+    wsPort: wsPort,
+    wssPort: wssPort,
+    forceTLS: forceTLS,
+    enabledTransports: transports,
+    disableStats: true,
+  });
+
+  setStatus('Connexion…');
+  pusher.connection.bind('connected', () => setStatus('Connecté', 'connected'));
+  pusher.connection.bind('disconnected', () => setStatus('Déconnecté'));
+  pusher.connection.bind('error', (err) => {
+    setStatus('Erreur de connexion', 'error');
+    console.error(err);
+    afficherAvisPerime(
+      '<strong>❌ Connexion WebSocket en échec.</strong> Cause n°1 : les tunnels ont été relancés ' +
+      '(nouvelles URLs à chaque fois). Rouvre l\'URL COMPLÈTE affichée par <code>./scripts/tunnel.sh</code> ' +
+      '(avec <code>?ws=…</code>) sur cet appareil, ou ' +
+      '<button onclick="localStorage.removeItem(\'ws_url\');location.reload()" style="padding:4px 8px;">oublier le WS mémorisé</button>'
+    );
+  });
+
+  monCanal = pusher.subscribe('device.' + myDeviceId);
+
+  // --- Appel entrant ---
+  monCanal.bind('incoming-call', (data) => {
+    console.log('[call] Appel entrant :', data);
+    if (peerConnection || currentCall) return; // déjà en appel : on ignore
+    currentCall = { fromDeviceId: data.from_device_id, fromUsername: data.from_username };
+    afficherAppelEntrant(data.from_username, data.from_device_id);
+
+    // Sonnerie robuste face à la politique autoplay :
+    // on tente de débloquer l'audio, on vibre en secours sur mobile,
+    // et si l'audio reste bloqué on affiche le bandeau « touchez ».
+    ensureAudioContext();
+    if (navigator.vibrate) navigator.vibrate([400, 200, 400, 200, 400]);
+    if (audioUnlocked) startRingtone();
+    else updateUnlockBanner();
+  });
+
+  // --- Signalisation WebRTC (offer / answer / candidate) ---
+  monCanal.bind('call-signal', gererSignal);
+}
+
+// =========================================================
+// SIGNALISATION WEBRTC
+// =========================================================
+// Laravel supprime le \r\n final pendant le broadcast, ce qui fait
+// échouer setRemoteDescription ("Invalid SDP line"). On répare ici.
+function sdpNormalise(sdp) {
+  return sdp.endsWith('\r\n') ? sdp : sdp + '\r\n';
+}
+
+async function gererSignal(data) {
+  console.log('[webrtc] Signal reçu :', data.type, 'de', data.from_device_id);
+  try {
+    if (data.type === 'offer') {
+      // Offre reçue pendant que ça sonne : on la met de côté,
+      // elle sera appliquée au moment du décrochage.
+      const brut = data.payload.sdp;
+      const sdpStr = typeof brut === 'string' ? brut : (brut && brut.sdp) || '';
+      if (!sdpStr) {
+        console.error('[webrtc] ❌ Offre SDP vide ! Signal reçu :', data);
+        return;
+      }
+      pendingOffer = { type: (brut && brut.type) || 'offer', sdp: sdpNormalise(sdpStr) };
+      remotePeerId = data.from_device_id;
+
+    } else if (data.type === 'answer' && peerConnection) {
+      const sdpBrut = data.payload.sdp;
+      const answer = {
+        type: sdpBrut.type || 'answer',
+        // Accepte les deux formats : {sdp: "…"} ou {sdp: {type, sdp}}
+        sdp: typeof sdpBrut.sdp === 'string' ? sdpBrut.sdp : (sdpBrut.sdp && sdpBrut.sdp.sdp) || '',
+      };
+      if (!answer.sdp) {
+        console.error('[webrtc] ❌ Answer SDP vide ! Signal reçu :', data);
+        return;
+      }
+      answer.sdp = sdpNormalise(answer.sdp);
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+      await viderCandidates();
+      // Côté appelant : le correspondant a décroché → écran en communication
+      demarrerEcranEnCommunication(appelEnCoursLabel || 'Correspondant', data.from_device_id);
+
+    } else if (data.type === 'candidate') {
+      const candidate = new RTCIceCandidate(data.payload.candidate);
+      if (peerConnection && peerConnection.remoteDescription) {
+        await peerConnection.addIceCandidate(candidate);
+      } else {
+        pendingCandidates.push(candidate);
+      }
+    } else if (data.type === 'bye') {
+      // Le correspondant a raccroché ou refusé : on termine LOCALEMENT
+      // sans renvoyer de bye (sinon boucle infinie).
+      console.log('[webrtc] 📴 Le correspondant a raccroché/refusé.');
+      terminerAppel(false);
+    }
+  } catch (e) {
+    console.error('[webrtc] Erreur signal :', e);
+  }
+}
+
+async function viderCandidates() {
+  while (pendingCandidates.length) {
+    const c = pendingCandidates.shift();
+    await peerConnection.addIceCandidate(c);
+  }
+}
+
+function sendSignal(toDeviceId, type, payload) {
+  fetch(baseUrl + '/api/v1/call/signal', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      to_device_id: toDeviceId,
+      from_device_id: myDeviceId,
+      type: type,
+      payload: payload,
+    }),
+  }).catch(err => console.error('[webrtc] sendSignal error:', err));
+}
+
+// =========================================================
+// PEER CONNECTION
+// =========================================================
+function getRuntimeTurnConfig() {
+  const turnUrl = localStorage.getItem('turn_url') || '';
+  if (!turnUrl) return null;
+  return {
+    url: turnUrl,
+    username: localStorage.getItem('turn_username') || '',
+    credential: localStorage.getItem('turn_credential') || localStorage.getItem('turn_password') || '',
+  };
+}
+
+function getProductionIceServers() {
+  const baseServers = [
+    { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
+  ];
+  const turnCfg = getRuntimeTurnConfig();
+  if (!turnCfg || !turnCfg.url) {
+    return { iceServers: baseServers, bundlePolicy: 'max-bundle', rtcpMuxPolicy: 'require' };
+  }
+  return {
+    iceServers: [
+      ...baseServers,
+      {
+        urls: turnCfg.url,
+        username: turnCfg.username || undefined,
+        credential: turnCfg.credential || undefined,
+      },
+    ],
+    bundlePolicy: 'max-bundle',
+    rtcpMuxPolicy: 'require',
+  };
+}
+
+function creerPeerConnection() {
+  peerConnection = new RTCPeerConnection(getProductionIceServers());
+
+  // Flux distant → lecteur audio (la voix du correspondant)
+  peerConnection.ontrack = (event) => {
+    console.log('[webrtc] Flux distant reçu');
+    document.getElementById('remoteAudio').srcObject = event.streams[0];
+  };
+
+  // Mes candidates → envoyées à l'autre pair
+  peerConnection.onicecandidate = (event) => {
+    if (event.candidate && remotePeerId) {
+      sendSignal(remotePeerId, 'candidate', { candidate: event.candidate.toJSON() });
+    }
+  };
+
+  peerConnection.onconnectionstatechange = () => {
+    const state = peerConnection ? peerConnection.connectionState : 'closed';
+    console.log('[webrtc] connectionState :', state);
+    if (state === 'connected') {
+      document.getElementById('activeCallStatus').textContent = 'En communication';
+    } else if (['disconnected', 'failed', 'closed'].includes(state)) {
+      terminerAppel();
+    }
+  };
+}
+
+// =========================================================
+// APPEL SORTANT
+// =========================================================
+async function appelerAppareil(targetId, fromLabel) {
+  if (!targetId) return;
+  if (peerConnection || currentCall) return; // déjà en appel
+  if (!checkMediaSupport()) return; // l'appelant a aussi besoin du micro
+
+  remotePeerId = targetId;
+  try {
+    // 1. Faire sonner la cible
+    const res = await fetch(baseUrl + '/api/v1/call/ring', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to_device_id: targetId,
+        from_device_id: myDeviceId,
+        from_username: fromLabel || 'Testeur',
+        type: 'audio',
+      }),
+    });
+    const json = await res.json();
+    if (!json.ok) throw new Error('Réponse invalide');
+    setStatus('Sonnerie…');
+    startRingback();
+    appelEnCoursLabel = fromLabel || 'Testeur';
+
+    // 2. Micro + PeerConnection + offre (envoyée immédiatement ;
+    //    la cible la mettra de côté jusqu'au décrochage).
+    //    ⚠️ Sérialisation EXPLICITE du SDP : passer l'objet
+    //    RTCSessionDescription directement à JSON.stringify produit {}
+    //    sur certains navigateurs (attributs sur le prototype).
+    localStream = await obtenirMicro();
+    creerPeerConnection();
+    localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
+
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer);
+    const offreSerialisee = { type: offer.type, sdp: offer.sdp };
+    sendSignal(targetId, 'offer', { sdp: offreSerialisee });
+
+    // Répéter l'offre à 2 s et 4,5 s : si la cible n'était pas encore
+    // abonnée au canal Reverb lors du premier envoi, elle serait sinon
+    // perdue définitivement (décrochage impossible → aucune voix).
+    setTimeout(() => {
+      if (peerConnection && !peerConnection.remoteDescription) {
+        console.log('[webrtc] Renvoi de l\'offre (tentative 2)…');
+        sendSignal(targetId, 'offer', { sdp: offreSerialisee });
+      }
+    }, 2000);
+    setTimeout(() => {
+      if (peerConnection && !peerConnection.remoteDescription) {
+        console.log('[webrtc] Renvoi de l\'offre (tentative 3)…');
+        sendSignal(targetId, 'offer', { sdp: offreSerialisee });
+      }
+    }, 4500);
+
+  } catch (e) {
+    console.error(e);
+    setStatus("Échec de l'appel", 'error');
+    terminerAppel();
+  }
+}
+
+// =========================================================
+// APPEL ENTRANT
+// =========================================================
+function afficherAppelEntrant(name, id) {
+  document.getElementById('incomingName').textContent = name;
+  document.getElementById('incomingMeta').textContent = id;
+  document.getElementById('incomingAvatarInitial').textContent = (name || '?').charAt(0).toUpperCase();
+  document.getElementById('incomingCallOverlay').classList.add('active');
+}
+function cacherAppelEntrant() {
+  document.getElementById('incomingCallOverlay').classList.remove('active');
+}
+
+async function decrocherAppel() {
+  if (!checkMediaSupport()) { stopRingtone(); return; }
+  stopRingtone();
+  cacherAppelEntrant();
+  try {
+    if (!pendingOffer) throw new Error('Offre non encore reçue — réessaie dans un instant');
+
+    localStream = await obtenirMicro();
+    creerPeerConnection();
+    localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
+
+    await peerConnection.setRemoteDescription(new RTCSessionDescription(pendingOffer));
+    pendingOffer = null;
+    await viderCandidates();
+
+    const answer = await peerConnection.createAnswer();
+    await peerConnection.setLocalDescription(answer);
+    // Sérialisation explicite (même raison que pour l'offre)
+    sendSignal(remotePeerId, 'answer', { sdp: { type: answer.type, sdp: answer.sdp } });
+
+    demarrerEcranEnCommunication(
+      currentCall ? currentCall.fromUsername : 'Inconnu',
+      currentCall ? currentCall.fromDeviceId : ''
+    );
+  } catch (e) {
+    console.error(e);
+    setStatus('Impossible de décrocher : ' + e.message, 'error');
+    terminerAppel();
+  }
+}
+
+function refuserAppel() {
+  stopRingtone();
+  cacherAppelEntrant();
+  if (currentCall) logMissedCall(currentCall.fromDeviceId, currentCall.fromUsername);
+  // Prévenir l'appelant qu'on a refusé → il arrête sa sonnerie de retour
+  if (remotePeerId) sendSignal(remotePeerId, 'bye', {});
+  pendingOffer = null;
+  pendingCandidates = [];
+  remotePeerId = null;
+  currentCall = null;
+}
+
+// =========================================================
+// ÉCRAN EN COMMUNICATION
+// =========================================================
+let callTimerInterval = null;
+let callSeconds = 0;
+
+function demarrerEcranEnCommunication(name, id) {
+  stopRingback();
+  document.getElementById('activeName').textContent = name;
+  document.getElementById('activeAvatarInitial').textContent = (name || '?').charAt(0).toUpperCase();
+  document.getElementById('activeCallStatus').textContent = 'En communication';
+  callSeconds = 0;
+  document.getElementById('activeTimer').textContent = '00:00';
+  document.getElementById('activeCallOverlay').classList.add('active');
+
+  clearInterval(callTimerInterval);
+  callTimerInterval = setInterval(() => {
+    callSeconds++;
+    const m = String(Math.floor(callSeconds / 60)).padStart(2, '0');
+    const s = String(callSeconds % 60).padStart(2, '0');
+    document.getElementById('activeTimer').textContent = `${m}:${s}`;
+  }, 1000);
+}
+
+function raccrocherAppel() { terminerAppel(); }
+
+// prevenir=true → on notifie le correspondant (raccrochage local).
+// prevenir=false → on a REÇU un bye, inutile de le renvoyer (boucle).
+function terminerAppel(prevenir = true) {
+  if (prevenir && remotePeerId) {
+    console.log('[webrtc] 📤 Envoi bye →', remotePeerId);
+    sendSignal(remotePeerId, 'bye', {});
+  }
+  stopRingback();
+  stopRingtone();
+  clearInterval(callTimerInterval);
+  callTimerInterval = null;
+  if (peerConnection) {
+    peerConnection.onconnectionstatechange = null; // évite la récursion au close()
+    peerConnection.close();
+    peerConnection = null;
+  }
+  if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+  micTrack = null;
+  pendingOffer = null;
+  pendingCandidates = [];
+  remotePeerId = null;
+  currentCall = null;
+  appelEnCoursLabel = null;
+  document.getElementById('remoteAudio').srcObject = null;
+  document.getElementById('incomingCallOverlay').classList.remove('active');
+  document.getElementById('activeCallOverlay').classList.remove('active');
+}
+
+function toggleMute() {
+  const btn = document.getElementById('muteBtn');
+  btn.classList.toggle('on');
+  const muted = btn.classList.contains('on');
+  if (localStream) localStream.getTracks().forEach(t => t.enabled = !muted);
+}
+function toggleSpeaker() {
+  // Indicatif seulement : le routage de sortie n'est pas contrôlable
+  // finement depuis un navigateur web standard.
+  document.getElementById('speakerBtn').classList.toggle('on');
+}
+
+// ---------- Init ----------
+updateMissedBadge();
+reconnecter();
+enregistrerMonAppareil();
+chargerAppareils();
+</script>
+
+</body>
+</html>

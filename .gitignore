@@ -1,0 +1,85 @@
+# ─────────────────────────────────────────────
+# Yam — .gitignore racine (backend Laravel + web)
+# ─────────────────────────────────────────────
+
+# ── Secrets / configuration locale ──
+.env
+.env.*
+!.env.example
+*.env.local
+*.env.production
+*.env.backup
+
+# ── Configuration locale (identifiants MySQL, ne jamais déployer) ──
+api/public/config/db.local.php
+web/kondjipro/config/db.local.php
+deploy/prod-migration/migrate-config.json
+
+# ── Backend Laravel (api/) ──
+api/vendor/
+api/node_modules/
+api/.phpunit.cache/
+api/.phpactor.json
+api/.phpunit.result.cache
+api/storage/*.key
+api/storage/pai
+api/storage/firebase/          # clé privée Firebase (service-account.json)
+api/public/build/
+api/public/hot
+api/public/storage
+api/database/database.sqlite
+api/auth.json
+api/Homestead.json
+api/Homestead.yaml
+
+# ── Base de données locale ──
+*.sqlite
+*.sqlite3
+
+# ── Frontend web ──
+web/node_modules/
+web/.env
+
+# ── Artefacts de build / debug ──
+*.apk
+*.aab
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# ── Captures / screenshots de dev ──
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+# … sauf assets du projet
+!api/public/assets/img/*.png
+!api/public/assets/img/*.jpg
+!api/public/assets/icons/*.png
+!api/public/assets/icons/*.svg
+
+# ── Outils de test / debug ──
+.playwright-mcp/
+
+# ── Agent / session data ──
+.claude/
+
+# ── Backups / artefacts dev ──
+deploy/backup-*/
+deploy/migrate_*.php
+changes-call-flow.txt
+settings_test_app/
+web/
+
+# ── Code legacy / prototype non utilisé ──
+api-engine/
+
+# ── Fichiers système / éditeurs ──
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
