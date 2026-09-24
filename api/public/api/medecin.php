@@ -154,6 +154,22 @@ $bio         = isset($_POST['bio']) ? trim($_POST['bio']) : ($currentMedecin['bi
 $horaires    = isset($_POST['horaires']) ? trim($_POST['horaires']) : ($currentMedecin['horaires'] ?? null);
 $accepte_rdv = isset($_POST['accepte_rdv']) ? (int)$_POST['accepte_rdv'] : (int)($currentMedecin['accepte_rdv'] ?? 1);
 
+if ($telephone !== '') {
+    $normTel = normalize_phone_e164($telephone);
+    if ($normTel === null) {
+        http_response_code(400);
+        echo json_encode(['ok' => false, 'error' => 'validation', 'message' => 'Numéro de téléphone invalide.']);
+        exit;
+    }
+    $check = phone_is_taken($normTel, 'medecin', $currentMedecin['id'] ?? null, (int)$user['id']);
+    if ($check['taken']) {
+        http_response_code(409);
+        echo json_encode(['ok' => false, 'error' => 'phone_taken', 'message' => $check['message']]);
+        exit;
+    }
+    $telephone = $normTel;
+}
+
 try {
     if ($currentMedecin && !empty($currentMedecin['id'])) {
         $photoToSave = $photoUploaded ? $newPhoto : ($currentMedecin['photo'] ?? null);
@@ -198,6 +214,14 @@ try {
         ]);
         $targetId = (int)$pdo->lastInsertId();
         $_SESSION['medecin_id'] = $targetId;
+    }
+
+    // Synchroniser users.phone_number et session
+    if ($telephone !== '' && !empty($user['id'])) {
+        try {
+            $pdo->prepare('UPDATE users SET phone_number = ? WHERE id = ?')->execute([$telephone, (int)$user['id']]);
+            $_SESSION['phone_number'] = $telephone;
+        } catch (Exception $e) {}
     }
 
     $refreshed = $pdo->prepare('SELECT * FROM medecins WHERE id = ?');

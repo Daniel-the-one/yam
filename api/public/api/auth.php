@@ -39,6 +39,67 @@ if (!function_exists('normalize_phone_e164')) {
     }
 }
 
+if (!function_exists('phone_is_taken')) {
+    /**
+     * Vérifie si un numéro de téléphone est déjà pris dans users, patients ou medecins.
+     *
+     * @param string      $phone            Numéro brut à tester
+     * @param string|null $contextRole      'patient' ou 'medecin' si modification
+     * @param int|null    $excludeRecordId  ID du patient ou médecin à exclure
+     * @param int|null    $excludeUserId    ID du user à exclure
+     * @return array [taken: bool, valid: bool, normalized: ?string, message?: string]
+     */
+    function phone_is_taken(string $phone, ?string $contextRole = null, ?int $excludeRecordId = null, ?int $excludeUserId = null): array {
+        $norm = normalize_phone_e164($phone);
+        if ($norm === null || strlen($norm) < 7) {
+            return ['taken' => false, 'valid' => false, 'normalized' => null, 'message' => 'Numéro de téléphone invalide.'];
+        }
+
+        $pdo = db_connect();
+        if (!$pdo) {
+            return ['taken' => false, 'valid' => true, 'normalized' => $norm];
+        }
+
+        $clean = preg_replace('/[^\d]/', '', $norm);
+        $last8 = strlen($clean) >= 8 ? substr($clean, -8) : $clean;
+
+        // 1. Table users (tous rôles confondus)
+        try {
+            $stmt = $pdo->prepare('SELECT id, role FROM users WHERE phone_number = ? OR phone_number = ? LIMIT 1');
+            $stmt->execute([$norm, $clean]);
+            $u = $stmt->fetch();
+            if ($u && ($excludeUserId === null || (int)$u['id'] !== (int)$excludeUserId)) {
+                $roleLabel = ($u['role'] ?? '') === 'medecin' ? 'un médecin' : 'un utilisateur';
+                return ['taken' => true, 'valid' => true, 'normalized' => $norm, 'in' => 'users', 'message' => "Ce numéro de téléphone est déjà associé à $roleLabel."];
+            }
+        } catch (Exception $e) {}
+
+        // 2. Table medecins
+        try {
+            $stmt = $pdo->prepare('SELECT id, prenom, nom FROM medecins WHERE telephone = ? OR telephone = ? OR telephone LIKE ? LIMIT 1');
+            $stmt->execute([$norm, $clean, '%' . $last8]);
+            $m = $stmt->fetch();
+            if ($m && !($contextRole === 'medecin' && $excludeRecordId !== null && (int)$m['id'] === (int)$excludeRecordId)) {
+                $nomMed = trim(($m['prenom'] ?? '') . ' ' . ($m['nom'] ?? ''));
+                $msg = $nomMed ? "Ce numéro de téléphone est déjà utilisé par le Dr $nomMed." : "Ce numéro de téléphone est déjà associé à un médecin.";
+                return ['taken' => true, 'valid' => true, 'normalized' => $norm, 'in' => 'medecins', 'message' => $msg];
+            }
+        } catch (Exception $e) {}
+
+        // 3. Table patients
+        try {
+            $stmt = $pdo->prepare('SELECT id, nom FROM patients WHERE telephone = ? OR telephone = ? OR telephone LIKE ? LIMIT 1');
+            $stmt->execute([$norm, $clean, '%' . $last8]);
+            $p = $stmt->fetch();
+            if ($p && !($contextRole === 'patient' && $excludeRecordId !== null && (int)$p['id'] === (int)$excludeRecordId)) {
+                return ['taken' => true, 'valid' => true, 'normalized' => $norm, 'in' => 'patients', 'message' => "Ce numéro de téléphone est déjà associé à un dossier patient."];
+            }
+        } catch (Exception $e) {}
+
+        return ['taken' => false, 'valid' => true, 'normalized' => $norm];
+    }
+}
+
 if (!function_exists('ensure_users_table')) {
     /**
      * Garantit l'existence de la table `users` (création idempotente).

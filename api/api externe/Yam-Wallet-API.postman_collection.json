@@ -1,0 +1,215 @@
+{
+  "info": {
+    "name": "Yam Wallet API — API externe",
+    "description": "Collection Postman de l'API externe Yam Wallet (à implémenter).\n\nBase URL : {{base_url}}\nAuthentification : Bearer token (Sanctum) sur chaque requête.\n\nEndpoints :\n1. GET  /api/v1/wallet — récupère le wallet\n2. POST /api/v1/wallet/recharge — initie une recharge Mobile Money\n3. POST /api/v1/wallet/transfert — transfère des fonds\n4. GET  /api/v1/wallet/transactions — liste paginée des transactions",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000",
+      "type": "string"
+    },
+    {
+      "key": "wallet_id",
+      "value": "TGW260622001252",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Récupérer le wallet",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/v1/wallet",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "wallet"
+          ]
+        },
+        "description": "Récupère le wallet de l'utilisateur connecté : solde, infos membre, stats du mois, dernières transactions, épargnes et assurances.\n\nAuthentification : Bearer token (Sanctum)."
+      },
+      "response": [
+        {
+          "name": "Exemple de réponse — wallet",
+          "originalRequest": {},
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n    \"status\": \"000\",\n    \"message\": \"Opération effectuée avec succès\",\n    \"wallet\": {\n        \"wallet_id\": \"TGW260622001252\",\n        \"key_wallet\": \"VlQd8VAggW_tryXLNhN4d74nTK5Lhl6D\",\n        \"solde\": \"38 000 Fcfa\",\n        \"solde_raw\": 38000,\n        \"devise\": \"XOF\",\n        \"devise_symbol\": \"Fcfa\",\n        \"devise_wallet\": \"XOF\",\n        \"symbole_wallet\": \"Fcfa\",\n        \"is_default\": 1,\n        \"date_create\": \"22/06/2026\"\n    },\n    \"membre\": {\n        \"nom\": \"bobbyc joe\",\n        \"username\": \"22891121677\",\n        \"email\": \"koudam.yvon@gmail.com\",\n        \"kyc_valide\": 0,\n        \"avatar\": \"\"\n    },\n    \"stats_mois\": {\n        \"periode\": \"June 2026\",\n        \"depenses\": \"19 510 Fcfa\",\n        \"depenses_raw\": 19510,\n        \"recus\": \"19 590 Fcfa\",\n        \"recus_raw\": 19590,\n        \"nb_transactions\": 39\n    },\n    \"dernieres_transactions\": [\n        {\n            \"id\": 100,\n            \"reference\": \"TXN_6a3dd6a0be6e77.19823858\",\n            \"type\": \"TRANSFER\",\n            \"type_name\": \"Transfert\",\n            \"type_icon\": \"receive\",\n            \"type_icon_color\": \"1DA971\",\n            \"type_icon_bg_color\": \"1DA97126\",\n            \"sens\": \"credit\",\n            \"amount\": \"+5 000 Fcfa\",\n            \"amount_raw\": 5000,\n            \"fees\": \"500 Fcfa\",\n            \"devise\": \"XOF\",\n            \"devise_symbol\": \"Fcfa\",\n            \"new_balance\": \"38 000 Fcfa\",\n            \"status\": 2,\n            \"status_show\": \"Réussie\",\n            \"status_color\": \"0E6E0E\",\n            \"description\": \"Argent santé de 5 000 XOF vers bobbyc joe\",\n            \"counterpart\": {\n                \"type\": \"internal\",\n                \"label\": \"TABADE Charlot\",\n                \"wallet_id\": \"TGW26062200270B\",\n                \"nom\": \"TABADE Charlot\"\n            },\n            \"date_transaction\": \"26/06/2026\",\n            \"heure_transaction\": \"01:32\",\n            \"date_complete\": \"26/06/2026 01:32\"\n        },\n        {\n            \"id\": 99,\n            \"reference\": \"TXN_6a3dd692a87766.06940086\",\n            \"type\": \"TRANSFER\",\n            \"type_name\": \"Transfert\",\n            \"type_icon\": \"send\",\n            \"type_icon_color\": \"EE343B\",\n            \"type_icon_bg_color\": \"EE343B26\",\n            \"sens\": \"debit\",\n            \"amount\": \"-5 000 Fcfa\",\n            \"amount_raw\": 5000,\n            \"fees\": \"500 Fcfa\",\n            \"devise\": \"XOF\",\n            \"devise_symbol\": \"Fcfa\",\n            \"new_balance\": \"33 000 Fcfa\",\n            \"status\": 2,\n            \"status_show\": \"Réussie\",\n            \"status_color\": \"0E6E0E\",\n            \"description\": \"Argent santé de 5 000 XOF vers TABADE Charlot\",\n            \"counterpart\": {\n                \"type\": \"internal\",\n                \"label\": \"TABADE Charlot\",\n                \"wallet_id\": \"TGW26062200270B\",\n                \"nom\": \"TABADE Charlot\"\n            },\n            \"date_transaction\": \"26/06/2026\",\n            \"heure_transaction\": \"01:32\",\n            \"date_complete\": \"26/06/2026 01:32\"\n        },\n        {\n            \"id\": 98,\n            \"reference\": \"TXN_6a3dd50a0a8773.54614080\",\n            \"type\": \"TRANSFER\",\n            \"type_name\": \"Transfert\",\n            \"type_icon\": \"send\",\n            \"type_icon_color\": \"EE343B\",\n            \"type_icon_bg_color\": \"EE343B26\",\n            \"sens\": \"debit\",\n            \"amount\": \"-5 000 Fcfa\",\n            \"amount_raw\": 5000,\n            \"fees\": \"500 Fcfa\",\n            \"devise\": \"XOF\",\n            \"devise_symbol\": \"Fcfa\",\n            \"new_balance\": \"38 500 Fcfa\",\n            \"status\": 2,\n            \"status_show\": \"Réussie\",\n            \"status_color\": \"0E6E0E\",\n            \"description\": \"Aide santé de 5 000 XOF vers TABADE Charlot\",\n            \"counterpart\": {\n                \"type\": \"internal\",\n                \"label\": \"TABADE Charlot\",\n                \"wallet_id\": \"TGW26062200270B\",\n                \"nom\": \"TABADE Charlot\"\n            },\n            \"date_transaction\": \"26/06/2026\",\n            \"heure_transaction\": \"01:25\",\n            \"date_complete\": \"26/06/2026 01:25\"\n        },\n        {\n            \"id\": 97,\n            \"reference\": \"TXN_6a3dd4e6e9ac30.12956966\",\n            \"type\": \"TRANSFER\",\n            \"type_name\": \"Transfert\",\n            \"type_icon\": \"receive\",\n            \"type_icon_color\": \"1DA971\",\n            \"type_icon_bg_color\": \"1DA97126\",\n            \"sens\": \"credit\",\n            \"amount\": \"+6 550 Fcfa\",\n            \"amount_raw\": 6550,\n            \"fees\": \"655 Fcfa\",\n            \"devise\": \"XOF\",\n            \"devise_symbol\": \"Fcfa\",\n            \"new_balance\": \"44 000 Fcfa\",\n            \"status\": 2,\n            \"status_show\": \"Réussie\",\n            \"status_color\": \"0E6E0E\",\n            \"description\": \"Aide santé de 10 EUR vers bobbyc joe\",\n            \"counterpart\": {\n                \"type\": \"internal\",\n                \"label\": \"TABADE Charlot\",\n                \"wallet_id\": \"TGW26062200270B\",\n                \"nom\": \"TABADE Charlot\"\n            },\n            \"date_transaction\": \"26/06/2026\",\n            \"heure_transaction\": \"01:24\",\n            \"date_complete\": \"26/06/2026 01:24\"\n        },\n        {\n            \"id\": 96,\n            \"reference\": \"TXN_6a3dd48bc3e008.64063596\",\n            \"type\": \"TRANSFER\",\n            \"type_name\": \"Transfert\",\n            \"type_icon\": \"send\",\n            \"type_icon_color\": \"EE343B\",\n            \"type_icon_bg_color\": \"EE343B26\",\n            \"sens\": \"debit\",\n            \"amount\": \"-655 Fcfa\",\n            \"amount_raw\": 655,\n            \"fees\": \"0 Fcfa\",\n            \"devise\": \"XOF\",\n            \"devise_symbol\": \"Fcfa\",\n            \"new_balance\": \"37 450 Fcfa\",\n            \"status\": 2,\n            \"status_show\": \"Réussie\",\n            \"status_color\": \"0E6E0E\",\n            \"description\": \"Aide santé de 1 EUR vers TABADE Charlot\",\n            \"counterpart\": {\n                \"type\": \"internal\",\n                \"label\": \"TABADE Charlot\",\n                \"wallet_id\": \"TGW26062200270B\",\n                \"nom\": \"TABADE Charlot\"\n            },\n            \"date_transaction\": \"26/06/2026\",\n            \"heure_transaction\": \"01:23\",\n            \"date_complete\": \"26/06/2026 01:23\"\n        }\n    ],\n    \"epargnes\": [],\n    \"nb_epargnes\": 0,\n    \"assurances\": [],\n    \"nb_assurances\": 0\n}"
+        }
+      ]
+    },
+    {
+      "name": "2. Recharger le wallet",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/v1/wallet/recharge",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "wallet",
+            "recharge"
+          ]
+        },
+        "description": "Initie une recharge via Mobile Money (CinetPay). Retourne un payment_token et une payment_url vers laquelle rediriger l'utilisateur (must_be_redirected = true).\n\nAuthentification : Bearer token (Sanctum).",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"montant\": 6040,\n  \"phone_number\": \"22891121670\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": [
+        {
+          "name": "Exemple de réponse — recharge",
+          "originalRequest": {},
+          "status": "Created",
+          "code": 201,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n    \"status\": \"000\",\n    \"message\": \"*** Erreur fichier traduction *** recharge_init_success\",\n    \"information\": {\n        \"type_transaction\": 2,\n        \"type_transaction_name\": \"Recharge\",\n        \"type_transaction_name_icon\": \"\",\n        \"ressource_key\": \"5qNd64PiqsgPH0bTrquBq1q9wWZcZ6PN\",\n        \"reference\": \"TXN_6a3aba62234302.77654017\",\n        \"wallet_id\": \"TGW260622001252\",\n        \"status\": 1,\n        \"status_show\": \"En cours\",\n        \"status_color\": \"CB9000\",\n        \"amount\": \"+6 040 Fcfa\",\n        \"fees\": \"3 020 Fcfa\",\n        \"total_amount\": \"9 060 Fcfa\",\n        \"devise\": \"XOF\",\n        \"devise_symbol\": \"Fcfa\",\n        \"new_balance\": \"-\",\n        \"description\": \"Recharge de 6 040 Fcfa via Mobile Money\",\n        \"bill_url\": \"\",\n        \"phone_number\": \"22891121670\",\n        \"add_information\": \"\",\n        \"is_third_party\": false,\n        \"date_transaction\": \"23/06/2026\",\n        \"heure_transaction\": \"16:54\",\n        \"montant_affiche\": \"6 040 Fcfa\",\n        \"devise_affiche\": \"XOF\",\n        \"symbole_affiche\": \"Fcfa\",\n        \"payment\": {\n            \"payment_token\": \"1f16f244648a643c952aaf630eca6ecd019ef5681c0a70be8dd0c2ecb552b773\",\n            \"payment_url\": \"https://secure.cinetpay.net/checkout/1f16f244648a643c952aaf630eca6ecd019ef5681c0a70be8dd0c2ecb552b773\",\n            \"must_be_redirected\": true\n        },\n        \"destinataire\": {\n            \"nom\": \"\",\n            \"wallet_id\": \"\",\n            \"devise\": \"\",\n            \"symbole\": \"\"\n        }\n    }\n}"
+        }
+      ]
+    },
+    {
+      "name": "3. Transférer des fonds",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/v1/wallet/transfert",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "wallet",
+            "transfert"
+          ]
+        },
+        "description": "Transfère des fonds vers un wallet interne (destinataire_wallet_id) ou un numéro Mobile Money. Retourne la référence de la transaction.\n\nAuthentification : Bearer token (Sanctum).",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"montant\": 5000,\n  \"destinataire_wallet_id\": \"TGW26062200270B\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": [
+        {
+          "name": "Exemple de réponse — transfert",
+          "originalRequest": {},
+          "status": "Created",
+          "code": 201,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n    \"status\": \"000\",\n    \"message\": \"*** Erreur fichier traduction *** transfer_success\",\n    \"information\": {\n        \"reference\": \"TXN_6a3e37abb2c123.39476421\",\n        \"status\": 2,\n        \"status_show\": \"Réussi\",\n        \"status_color\": \"0E6E0E\",\n        \"amount\": \"-5 000 Fcfa\",\n        \"fees\": \"500 Fcfa\",\n        \"new_balance\": \"32 500 Fcfa\",\n        \"devise\": \"XOF\",\n        \"is_internal\": 1,\n        \"date_transaction\": \"26/06/2026\",\n        \"heure_transaction\": \"08:26\",\n        \"destinataire\": {\n            \"nom\": \"TABADE Charlot\",\n            \"wallet_id\": \"TGW26062200270B\",\n            \"montant_recu\": \"7.63 €\"\n        }\n    }\n}"
+        }
+      ]
+    },
+    {
+      "name": "4. Liste des transactions",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/v1/wallet/transactions",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "wallet",
+            "transactions"
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "1",
+              "description": "Numéro de page (défaut 1)"
+            },
+            {
+              "key": "limit",
+              "value": "20",
+              "description": "Nombre d'éléments par page (défaut 20)"
+            }
+          ]
+        },
+        "description": "Liste paginée des transactions du wallet, groupées par date.\n\nAuthentification : Bearer token (Sanctum)."
+      },
+      "response": [
+        {
+          "name": "Exemple de réponse — transactions",
+          "originalRequest": {},
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n    \"status\": \"000\",\n    \"message\": \"Opération effectuée avec succès\",\n    \"wallet\": {\n        \"wallet_id\": \"TGW260622001252\",\n        \"solde\": \"40 300 Fcfa\",\n        \"solde_raw\": 40300,\n        \"devise\": \"XOF\",\n        \"devise_symbol\": \"Fcfa\"\n    },\n    \"pagination\": {\n        \"page\": 1,\n        \"limit\": 20,\n        \"total\": 22,\n        \"total_pages\": 2,\n        \"has_next\": true\n    },\n    \"transactions\": {\n        \"24/06/2026\": [\n            {\n                \"id\": 81,\n                \"reference\": \"TXN_6a3b1670e07d33.09241793\",\n                \"type\": \"TRANSFER\",\n                \"type_name\": \"Transfert\",\n                \"type_icon\": \"wallet_receive\",\n                \"type_icon_color\": \"1DA971\",\n                \"type_icon_bg_color\": \"1DA97126\",\n                \"sens\": \"credit\",\n                \"amount\": \"+500 Fcfa\",\n                \"amount_raw\": 500,\n                \"fees\": \"0 Fcfa\",\n                \"devise\": \"XOF\",\n                \"devise_symbol\": \"Fcfa\",\n                \"new_balance\": \"40 300 Fcfa\",\n                \"status\": 2,\n                \"status_show\": \"Réussie\",\n                \"status_color\": \"0E6E0E\",\n                \"description\": \"Transfert de 500 XOF vers joe\",\n                \"counterpart\": {\n                    \"type\": \"internal\",\n                    \"label\": \"TABADE Charlot\",\n                    \"wallet_id\": \"TGW26062200270B\",\n                    \"nom\": \"TABADE Charlot\"\n                },\n                \"date_transaction\": \"24/06/2026\",\n                \"heure_transaction\": \"23:27\",\n                \"date_complete\": \"23/06/2026 23:27\"\n            },\n            {\n                \"id\": 80,\n                \"reference\": \"TXN_6a3b15e5705003.71713419\",\n                \"type\": \"TRANSFER\",\n                \"type_name\": \"Transfert\",\n                \"type_icon\": \"wallet_receive\",\n                \"type_icon_color\": \"1DA971\",\n                \"type_icon_bg_color\": \"1DA97126\",\n                \"sens\": \"credit\",\n                \"amount\": \"+500 Fcfa\",\n                \"amount_raw\": 500,\n                \"fees\": \"0 Fcfa\",\n                \"devise\": \"XOF\",\n                \"devise_symbol\": \"Fcfa\",\n                \"new_balance\": \"39 800 Fcfa\",\n                \"status\": 2,\n                \"status_show\": \"Réussie\",\n                \"status_color\": \"0E6E0E\",\n                \"description\": \"Transfert de 500 XOF vers joe\",\n                \"counterpart\": {\n                    \"type\": \"internal\",\n                    \"label\": \"TABADE Charlot\",\n                    \"wallet_id\": \"TGW26062200270B\",\n                    \"nom\": \"TABADE Charlot\"\n                },\n                \"date_transaction\": \"24/06/2026\",\n                \"heure_transaction\": \"23:25\",\n                \"date_complete\": \"23/06/2026 23:25\"\n            }\n        ],\n        \"23/06/2026\": [\n            {\n                \"id\": 79,\n                \"reference\": \"TXN_6a3b14d3ceb929.09857855\",\n                \"type\": \"TRANSFER\",\n                \"type_name\": \"Transfert\",\n                \"type_icon\": \"wallet_send\",\n                \"type_icon_color\": \"EE343B\",\n                \"type_icon_bg_color\": \"EE343B26\",\n                \"sens\": \"debit\",\n                \"amount\": \"-100 Fcfa\",\n                \"amount_raw\": 100,\n                \"fees\": \"40 Fcfa\",\n                \"devise\": \"XOF\",\n                \"devise_symbol\": \"Fcfa\",\n                \"new_balance\": \"39 300 Fcfa\",\n                \"status\": 2,\n                \"status_show\": \"Réussie\",\n                \"status_color\": \"0E6E0E\",\n                \"description\": \"Transfert de 100 XOF vers +2250707000001 via Mobile Money\",\n                \"counterpart\": {\n                    \"type\": \"mobile_money\",\n                    \"label\": \"Mobile Money — +2250707000001\",\n                    \"wallet_id\": \"\",\n                    \"nom\": \"+2250707000001\"\n                },\n                \"date_transaction\": \"23/06/2026\",\n                \"heure_transaction\": \"23:20\",\n                \"date_complete\": \"23/06/2026 23:20\"\n            },\n            {\n                \"id\": 78,\n                \"reference\": \"TXN_6a3b12448b2ce2.82399644\",\n                \"type\": \"TRANSFER\",\n                \"type_name\": \"Transfert\",\n                \"type_icon\": \"wallet_send\",\n                \"type_icon_color\": \"EE343B\",\n                \"type_icon_bg_color\": \"EE343B26\",\n                \"sens\": \"debit\",\n                \"amount\": \"-100 Fcfa\",\n                \"amount_raw\": 100,\n                \"fees\": \"40 Fcfa\",\n                \"devise\": \"XOF\",\n                \"devise_symbol\": \"Fcfa\",\n                \"new_balance\": \"39 440 Fcfa\",\n                \"status\": 1,\n                \"status_show\": \"En cours\",\n                \"status_color\": \"CB9000\",\n                \"description\": \"Transfert de 100 XOF vers +2250707000001 via Mobile Money\",\n                \"counterpart\": {\n                    \"type\": \"mobile_money\",\n                    \"label\": \"Mobile Money — +2250707000001\",\n                    \"wallet_id\": \"\",\n                    \"nom\": \"+2250707000001\"\n                },\n                \"date_transaction\": \"23/06/2026\",\n                \"heure_transaction\": \"23:09\",\n                \"date_complete\": \"\"\n            },\n            {\n                \"id\": 77,\n                \"reference\": \"TXN_6a3b121ee13072.28674107\",\n                \"type\": \"TRANSFER\",\n                \"type_name\": \"Transfert\",\n                \"type_icon\": \"wallet_send\",\n                \"type_icon_color\": \"EE343B\",\n                \"type_icon_bg_color\": \"EE343B26\",\n                \"sens\": \"debit\",\n                \"amount\": \"-100 Fcfa\",\n                \"amount_raw\": 100,\n                \"fees\": \"40 Fcfa\",\n                \"devise\": \"XOF\",\n                \"devise_symbol\": \"Fcfa\",\n                \"new_balance\": \"39 580 Fcfa\",\n                \"status\": 1,\n                \"status_show\": \"En cours\",\n                \"status_color\": \"CB9000\",\n                \"description\": \"Transfert de 100 XOF vers +2250707000001 via Mobile Money\",\n                \"counterpart\": {\n                    \"type\": \"mobile_money\",\n                    \"label\": \"Mobile Money — +2250707000001\",\n                    \"wallet_id\": \"\",\n                    \"nom\": \"+2250707000001\"\n                },\n                \"date_transaction\": \"23/06/2026\",\n                \"heure_transaction\": \"23:09\",\n                \"date_complete\": \"\"\n            },\n            {\n                \"id\": 76,\n                \"reference\": \"TXN_6a3b11dbe44e09.55126719\",\n                \"type\": \"TRANSFER\",\n                \"type_name\": \"Transfert\",\n                \"type_icon\": \"wallet_send\",\n                \"type_icon_color\": \"EE343B\",\n                \"type_icon_bg_color\": \"EE343B26\",\n                \"sens\": \"debit\",\n                \"amount\": \"-100 Fcfa\",\n                \"amount_raw\": 100,\n                \"fees\": \"40 Fcfa\",\n                \"devise\": \"XOF\",\n                \"devise_symbol\": \"Fcfa\",\n                \"new_balance\": \"39 580 Fcfa\",\n                \"status\": 3,\n                \"status_show\": \"Échouée\",\n                \"status_color\": \"E41927\",\n                \"description\": \"Transfert de 100 XOF vers +2250707000001 via Mobile Money\",\n                \"counterpart\": {\n                    \"type\": \"mobile_money\",\n                    \"label\": \"Mobile Money — +2250707000001\",\n                    \"wallet_id\": \"\",\n                    \"nom\": \"+2250707000001\"\n                },\n                \"date_transaction\": \"23/06/2026\",\n                \"heure_transaction\": \"23:08\",\n                \"date_complete\": \"\"\n            },\n            {\n                \"id\": 75,\n                \"reference\": \"TXN_6a3b1171749d70.15452687\",\n                \"type\": \"TRANSFER\",\n                \"type_name\": \"Transfert\",\n                \"type_icon\": \"wallet_send\",\n                \"type_icon_color\": \"EE343B\",\n                \"type_icon_bg_color\": \"EE343B26\",\n                \"sens\": \"debit\",\n                \"amount\": \"-100 Fcfa\",\n                \"amount_raw\": 100,\n                \"fees\": \"40 Fcfa\",\n                \"devise\": \"XOF\",\n                \"devise_symbol\": \"Fcfa\",\n                \"new_balance\": \"39 720 Fcfa\",\n                \"status\": 1,\n                \"status_show\": \"En cours\",\n                \"status_color\": \"CB9000\",\n                \"description\": \"Transfert de 100 XOF vers +2250707000001 via Mobile Money\",\n                \"counterpart\": {\n                    \"type\": \"mobile_money\",\n                    \"label\": \"Mobile Money — +2250707000001\",\n                    \"wallet_id\": \"\",\n                    \"nom\": \"+2250707000001\"\n                },\n                \"date_transaction\": \"23/06/2026\",\n                \"heure_transaction\": \"23:06\",\n                \"date_complete\": \"\"\n            },\n            {\n                \"id\": 74,\n                \"reference\": \"TXN_6a3b107d872b15.38088727\",\n                \"type\": \"TRANSFER\",\n                \"type_name\": \"Transfert\",\n                \"type_icon\": \"wallet_send\",\n                \"type_icon_color\": \"EE343B\",\n                \"type_icon_bg_color\": \"EE343B26\",\n                \"sens\": \"debit\",\n                \"amount\": \"-100 Fcfa\",\n                \"amount_raw\": 100,\n                \"fees\": \"40 Fcfa\",\n                \"devise\": \"XOF\",\n                \"devise_symbol\": \"Fcfa\",\n                \"new_balance\": \"39 860 Fcfa\",\n                \"status\": 1,\n                \"status_show\": \"En cours\",\n                \"status_color\": \"CB9000\",\n                \"description\": \"Transfert de 100 XOF vers +2250707000001 via Mobile Money\",\n                \"counterpart\": {\n                    \"type\": \"mobile_money\",\n                    \"label\": \"Mobile Money — +2250707000001\",\n                    \"wallet_id\": \"\",\n                    \"nom\": \"+2250707000001\"\n                },\n                \"date_transaction\": \"23/06/2026\",\n                \"heure_transaction\": \"23:02\",\n                \"date_complete\": \"\"\n            },\n            {\n                \"id\": 73,\n                \"reference\": \"TXN_6a3b105d1296d8.71913053\",\n                \"type\": \"TRANSFER\",\n                \"type_name\": \"Transfert\",\n                \"type_icon\": \"wallet_send\",\n                \"type_icon_color\": \"EE343B\",\n                \"type_icon_bg_color\": \"EE343B26\",\n                \"sens\": \"debit\",\n                \"amount\": \"-100 Fcfa\",\n                \"amount_raw\": 100,\n                \"fees\": \"40 Fcfa\",\n                \"devise\": \"XOF\",\n                \"devise_symbol\": \"Fcfa\",\n                \"new_balance\": \"40 000 Fcfa\",\n                \"status\": 1,\n                \"status_show\": \"En cours\",\n                \"status_color\": \"CB9000\",\n                \"description\": \"Transfert de 100 XOF vers +2250707000001 via Mobile Money\",\n                \"counterpart\": {\n                    \"type\": \"mobile_money\",\n                    \"label\": \"Mobile Money — +2250707000001\",\n                    \"wallet_id\": \"\",\n                    \"nom\": \"+2250707000001\"\n                },\n                \"date_transaction\": \"23/06/2026\",\n                \"heure_transaction\": \"23:01\",\n                \"date_complete\": \"\"\n            },\n            {\n                \"id\": 72,\n                \"reference\": \"TXN_6a3b0fe01a6179.56520918\",\n                \"type\": \"TRANSFER\",\n                \"type_name\": \"Transfert\",\n                \"type_icon\": \"wallet_send\",\n                \"type_icon_color\": \"EE343B\",\n                \"type_icon_bg_color\": \"EE343B26\",\n                \"sens\": \"debit\",\n                \"amount\": \"-100 Fcfa\",\n                \"amount_raw\": 100,\n                \"fees\": \"40 Fcfa\",\n                \"devise\": \"XOF\",\n                \"devise_symbol\": \"Fcfa\",\n                \"new_balance\": \"40 000 Fcfa\",\n                \"status\": 3,\n                \"status_show\": \"Échouée\",\n                \"status_color\": \"E41927\",\n                \"description\": \"Transfert de 100 XOF vers +2250707000001 via Mobile Money\",\n                \"counterpart\": {\n                    \"type\": \"mobile_money\",\n                    \"label\": \"Mobile Money — +2250707000001\",\n                    \"wallet_id\": \"\",\n                    \"nom\": \"+2250707000001\"\n                },\n                \"date_transaction\": \"23/06/2026\",\n                \"heure_transaction\": \"22:59\",\n                \"date_complete\": \"\"\n            },\n            {\n                \"id\": 71,\n                \"reference\": \"TXN_6a3b0f2059f704.82383292\",\n                \"type\": \"TRANSFER\",\n                \"type_name\": \"Transfert\",\n                \"type_icon\": \"wallet_send\",\n                \"type_icon_color\": \"EE343B\",\n                \"type_icon_bg_color\": \"EE343B26\",\n                \"sens\": \"debit\",\n                \"amount\": \"-8 000 Fcfa\",\n                \"amount_raw\": 8000,\n                \"fees\": \"800 Fcfa\",\n                \"devise\": \"XOF\",\n                \"devise_symbol\": \"Fcfa\",\n                \"new_balance\": \"31 340 Fcfa\",\n                \"status\": 3,\n                \"status_show\": \"Échouée\",\n                \"status_color\": \"E41927\",\n                \"description\": \"Transfert de 8 000 XOF vers +2250707000001 via Mobile Money\",\n                \"counterpart\": {\n                    \"type\": \"mobile_money\",\n                    \"label\": \"Mobile Money — +2250707000001\",\n                    \"wallet_id\": \"\",\n                    \"nom\": \"+2250707000001\"\n                },\n                \"date_transaction\": \"23/06/2026\",\n                \"heure_transaction\": \"22:56\",\n                \"date_complete\": \"\"\n            },\n            {\n                \"id\": 70,\n                \"reference\": \"TXN_6a3b0ec9591440.30378915\",\n                \"type\": \"TRANSFER\",\n                \"type_name\": \"Transfert\",\n                \"type_icon\": \"wallet_send\",\n                \"type_icon_color\": \"EE343B\",\n                \"type_icon_bg_color\": \"EE343B26\",\n                \"sens\": \"debit\",\n                \"amount\": \"-8 000 Fcfa\",\n                \"amount_raw\": 8000,\n                \"fees\": \"800 Fcfa\",\n                \"devise\": \"XOF\",\n                \"devise_symbol\": \"Fcfa\",\n                \"new_balance\": \"40 140 Fcfa\",\n                \"status\": 1,\n                \"status_show\": \"En cours\",\n                \"status_color\": \"CB9000\",\n                \"description\": \"Transfert de 8 000 XOF vers +2250707000001 via Mobile Money\",\n                \"counterpart\": {\n                    \"type\": \"mobile_money\",\n                    \"label\": \"Mobile Money — +2250707000001\",\n                    \"wallet_id\": \"\",\n                    \"nom\": \"+2250707000001\"\n                },\n                \"date_transaction\": \"23/06/2026\",\n                \"heure_transaction\": \"22:55\",\n                \"date_complete\": \"\"\n            },\n            {\n                \"id\": 69,\n                \"reference\": \"TXN_6a3b0eac2265a4.21213103\",\n                \"type\": \"TRANSFER\",\n                \"type_name\": \"Transfert\",\n                \"type_icon\": \"wallet_send\",\n                \"type_icon_color\": \"EE343B\",\n                \"type_icon_bg_color\": \"EE343B26\",\n                \"sens\": \"debit\",\n                \"amount\": \"-8 000 Fcfa\",\n                \"amount_raw\": 8000,\n                \"fees\": \"800 Fcfa\",\n                \"devise\": \"XOF\",\n                \"devise_symbol\": \"Fcfa\",\n                \"new_balance\": \"40 140 Fcfa\",\n                \"status\": 3,\n                \"status_show\": \"Échouée\",\n                \"status_color\": \"E41927\",\n                \"description\": \"Transfert de 8 000 XOF vers +2250707000001 via Mobile Money\",\n                \"counterpart\": {\n                    \"type\": \"mobile_money\",\n                    \"label\": \"Mobile Money — +2250707000001\",\n                    \"wallet_id\": \"\",\n                    \"nom\": \"+2250707000001\"\n                },\n                \"date_transaction\": \"23/06/2026\",\n                \"heure_transaction\": \"22:54\",\n                \"date_complete\": \"\"\n            },\n            {\n                \"id\": 68,\n                \"reference\": \"TXN_6a3b0e6c23a744.96538408\",\n                \"type\": \"TRANSFER\",\n                \"type_name\": \"Transfert\",\n                \"type_icon\": \"wallet_send\",\n                \"type_icon_color\": \"EE343B\",\n                \"type_icon_bg_color\": \"EE343B26\",\n                \"sens\": \"debit\",\n                \"amount\": \"-8 000 Fcfa\",\n                \"amount_raw\": 8000,\n                \"fees\": \"800 Fcfa\",\n                \"devise\": \"XOF\",\n                \"devise_symbol\": \"Fcfa\",\n                \"new_balance\": \"40 140 Fcfa\",\n                \"status\": 3,\n                \"status_show\": \"Échouée\",\n                \"status_color\": \"E41927\",\n                \"description\": \"Transfert de 8 000 XOF vers +2250707000001 via Mobile Money\",\n                \"counterpart\": {\n                    \"type\": \"mobile_money\",\n                    \"label\": \"Mobile Money — +2250707000001\",\n                    \"wallet_id\": \"\",\n                    \"nom\": \"+2250707000001\"\n                },\n                \"date_transaction\": \"23/06/2026\",\n                \"heure_transaction\": \"22:53\",\n                \"date_complete\": \"\"\n            },\n            {\n                \"id\": 67,\n                \"reference\": \"TXN_6a3b0e51e6e9a3.28060031\",\n                \"type\": \"TRANSFER\",\n                \"type_name\": \"Transfert\",\n                \"type_icon\": \"wallet_send\",\n                \"type_icon_color\": \"EE343B\",\n                \"type_icon_bg_color\": \"EE343B26\",\n                \"sens\": \"debit\",\n                \"amount\": \"-8 000 Fcfa\",\n                \"amount_raw\": 8000,\n                \"fees\": \"800 Fcfa\",\n                \"devise\": \"XOF\",\n                \"devise_symbol\": \"Fcfa\",\n                \"new_balance\": \"40 140 Fcfa\",\n                \"status\": 3,\n                \"status_show\": \"Échouée\",\n                \"status_color\": \"E41927\",\n                \"description\": \"Transfert de 8 000 XOF vers 22899545454 via Mobile Money\",\n                \"counterpart\": {\n                    \"type\": \"mobile_money\",\n                    \"label\": \"Mobile Money — 22899545454\",\n                    \"wallet_id\": \"\",\n                    \"nom\": \"22899545454\"\n                },\n                \"date_transaction\": \"23/06/2026\",\n                \"heure_transaction\": \"22:53\",\n                \"date_complete\": \"\"\n            },\n            {\n                \"id\": 61,\n                \"reference\": \"TXN_6a3afed994cc38.46147993\",\n                \"type\": \"TOPUP\",\n                \"type_name\": \"Recharge\",\n                \"type_icon\": \"wallet_topup\",\n                \"type_icon_color\": \"1DA971\",\n                \"type_icon_bg_color\": \"1DA97126\",\n                \"sens\": \"credit\",\n                \"amount\": \"+1 000 Fcfa\",\n                \"amount_raw\": 1000,\n                \"fees\": \"100 Fcfa\",\n                \"devise\": \"XOF\",\n                \"devise_symbol\": \"Fcfa\",\n                \"new_balance\": \"57 040 Fcfa\",\n                \"status\": 2,\n                \"status_show\": \"Réussie\",\n                \"status_color\": \"0E6E0E\",\n                \"description\": \"Recharge de 1 000 Fcfa via Mobile Money\",\n                \"counterpart\": {\n                    \"type\": \"external\",\n                    \"label\": \"Recharge via 22891121670\",\n                    \"wallet_id\": \"\",\n                    \"nom\": \"Mobile Money\"\n                },\n                \"date_transaction\": \"23/06/2026\",\n                \"heure_transaction\": \"21:47\",\n                \"date_complete\": \"23/06/2026 23:49\"\n            },\n            {\n                \"id\": 60,\n                \"reference\": \"TXN_6a3afe795520a9.85300944\",\n                \"type\": \"TOPUP\",\n                \"type_name\": \"Recharge\",\n                \"type_icon\": \"wallet_topup\",\n                \"type_icon_color\": \"1DA971\",\n                \"type_icon_bg_color\": \"1DA97126\",\n                \"sens\": \"credit\",\n                \"amount\": \"+1 000 Fcfa\",\n                \"amount_raw\": 1000,\n                \"fees\": \"100 Fcfa\",\n                \"devise\": \"XOF\",\n                \"devise_symbol\": \"Fcfa\",\n                \"new_balance\": \"\",\n                \"status\": 1,\n                \"status_show\": \"En cours\",\n                \"status_color\": \"CB9000\",\n                \"description\": \"Recharge de 1 000 Fcfa via Mobile Money\",\n                \"counterpart\": {\n                    \"type\": \"external\",\n                    \"label\": \"Recharge via 22891121670\",\n                    \"wallet_id\": \"\",\n                    \"nom\": \"Mobile Money\"\n                },\n                \"date_transaction\": \"23/06/2026\",\n                \"heure_transaction\": \"21:45\",\n                \"date_complete\": \"\"\n            }\n        ],\n        \"22/06/2026\": [\n            {\n                \"id\": 66,\n                \"reference\": \"TXN_6a3b0dee0dfe40.42456420\",\n                \"type\": \"TRANSFER\",\n                \"type_name\": \"Transfert\",\n                \"type_icon\": \"wallet_send\",\n                \"type_icon_color\": \"EE343B\",\n                \"type_icon_bg_color\": \"EE343B26\",\n                \"sens\": \"debit\",\n                \"amount\": \"-8 000 Fcfa\",\n                \"amount_raw\": 8000,\n                \"fees\": \"800 Fcfa\",\n                \"devise\": \"XOF\",\n                \"devise_symbol\": \"Fcfa\",\n                \"new_balance\": \"40 140 Fcfa\",\n                \"status\": 3,\n                \"status_show\": \"Échouée\",\n                \"status_color\": \"E41927\",\n                \"description\": \"Transfert de 8 000 XOF vers 22899545454 via Mobile Money\",\n                \"counterpart\": {\n                    \"type\": \"mobile_money\",\n                    \"label\": \"Mobile Money — 22899545454\",\n                    \"wallet_id\": \"\",\n                    \"nom\": \"22899545454\"\n                },\n                \"date_transaction\": \"22/06/2026\",\n                \"heure_transaction\": \"22:51\",\n                \"date_complete\": \"\"\n            },\n            {\n                \"id\": 65,\n                \"reference\": \"TXN_6a3b0c2e2b4ed1.36624544\",\n                \"type\": \"TRANSFER\",\n                \"type_name\": \"Transfert\",\n                \"type_icon\": \"wallet_send\",\n                \"type_icon_color\": \"EE343B\",\n                \"type_icon_bg_color\": \"EE343B26\",\n                \"sens\": \"debit\",\n                \"amount\": \"-8 000 Fcfa\",\n                \"amount_raw\": 8000,\n                \"fees\": \"800 Fcfa\",\n                \"devise\": \"XOF\",\n                \"devise_symbol\": \"Fcfa\",\n                \"new_balance\": \"40 140 Fcfa\",\n                \"status\": 3,\n                \"status_show\": \"Échouée\",\n                \"status_color\": \"E41927\",\n                \"description\": \"Transfert de 8 000 XOF vers 22899545454 via Mobile Money\",\n                \"counterpart\": {\n                    \"type\": \"mobile_money\",\n                    \"label\": \"Mobile Money — 22899545454\",\n                    \"wallet_id\": \"\",\n                    \"nom\": \"22899545454\"\n                },\n                \"date_transaction\": \"22/06/2026\",\n                \"heure_transaction\": \"22:43\",\n                \"date_complete\": \"\"\n            },\n            {\n                \"id\": 64,\n                \"reference\": \"TXN_6a3b0240d2b1b3.76871916\",\n                \"type\": \"TRANSFER\",\n                \"type_name\": \"Transfert\",\n                \"type_icon\": \"wallet_send\",\n                \"type_icon_color\": \"EE343B\",\n                \"type_icon_bg_color\": \"EE343B26\",\n                \"sens\": \"debit\",\n                \"amount\": \"-1 000 Fcfa\",\n                \"amount_raw\": 1000,\n                \"fees\": \"100 Fcfa\",\n                \"devise\": \"XOF\",\n                \"devise_symbol\": \"Fcfa\",\n                \"new_balance\": \"48 940 Fcfa\",\n                \"status\": 1,\n                \"status_show\": \"En cours\",\n                \"status_color\": \"CB9000\",\n                \"description\": \"Transfert de 1 000 XOF vers 22899545454 via Mobile Money\",\n                \"counterpart\": {\n                    \"type\": \"mobile_money\",\n                    \"label\": \"Mobile Money — 22899545454\",\n                    \"wallet_id\": \"\",\n                    \"nom\": \"22899545454\"\n                },\n                \"date_transaction\": \"22/06/2026\",\n                \"heure_transaction\": \"22:01\",\n                \"date_complete\": \"\"\n            }\n        ]\n    }\n}"
+        }
+      ]
+    }
+  ]
+}

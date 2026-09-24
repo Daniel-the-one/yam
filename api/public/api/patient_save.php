@@ -96,6 +96,22 @@ if ($patientId > 0) {
         exit;
     }
 
+    $normTel = normalize_phone_e164($telephone);
+    if ($normTel === null && $telephone !== '') {
+        http_response_code(400);
+        echo json_encode(['ok' => false, 'error' => 'validation', 'message' => 'Numéro de téléphone invalide.']);
+        exit;
+    }
+    if ($normTel !== null) {
+        $check = phone_is_taken($normTel, 'patient', $patientId, (int)$user['id']);
+        if ($check['taken']) {
+            http_response_code(409);
+            echo json_encode(['ok' => false, 'error' => 'phone_taken', 'message' => $check['message']]);
+            exit;
+        }
+        $telephone = $normTel;
+    }
+
     // Photo profil (optionnelle)
     $photo_profil = handle_photo_upload();
     // Si pas de nouvelle photo, on garde l'ancienne
@@ -138,6 +154,14 @@ if ($patientId > 0) {
             ':bio'       => $bio !== '' ? $bio : null,
             ':id'        => $patientId,
         ]);
+
+        if ($telephone !== '' && !empty($user['id'])) {
+            try {
+                $pdo->prepare('UPDATE users SET phone_number = ? WHERE id = ?')->execute([$telephone, (int)$user['id']]);
+                $_SESSION['phone_number'] = $telephone;
+            } catch (Exception $e) {}
+        }
+
         echo json_encode(['ok'=>true, 'message'=>'Profil mis à jour.', 'photo_profil'=>$photo_profil, 'photo'=>$photo_profil]);
     } catch (Exception $e) {
         echo json_encode(['ok'=>false, 'message'=>$e->getMessage()]);
@@ -150,6 +174,21 @@ if ($nom === '' || $telephone === '') {
     echo json_encode(['ok'=>false,'message'=>'Nom et téléphone sont obligatoires.']);
     exit;
 }
+
+$normTel = normalize_phone_e164($telephone);
+if ($normTel === null) {
+    http_response_code(400);
+    echo json_encode(['ok'=>false,'error'=>'validation','message'=>'Format de téléphone invalide.']);
+    exit;
+}
+
+$check = phone_is_taken($normTel, 'patient');
+if ($check['taken']) {
+    http_response_code(409);
+    echo json_encode(['ok'=>false,'error'=>'phone_taken','message'=>$check['message']]);
+    exit;
+}
+$telephone = $normTel;
 
 $pdo = db_connect();
 if (!$pdo) {

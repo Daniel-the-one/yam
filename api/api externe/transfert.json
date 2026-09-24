@@ -1,0 +1,22 @@
+{
+    "status": "000",
+    "message": "*** Erreur fichier traduction *** transfer_success",
+    "information": {
+        "reference": "TXN_6a3e37abb2c123.39476421",
+        "status": 2,
+        "status_show": "Réussi",
+        "status_color": "0E6E0E",
+        "amount": "-5 000 Fcfa",
+        "fees": "500 Fcfa",
+        "new_balance": "32 500 Fcfa",
+        "devise": "XOF",
+        "is_internal": 1,
+        "date_transaction": "26/06/2026",
+        "heure_transaction": "08:26",
+        "destinataire": {
+            "nom": "TABADE Charlot",
+            "wallet_id": "TGW26062200270B",
+            "montant_recu": "7.63 €"
+        }
+    }
+}

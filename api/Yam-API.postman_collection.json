@@ -1,0 +1,152 @@
+{
+	"info": {
+		"name": "Yam API — Appel Audio (sans auth)",
+		"description": "Collection Postman pour l'API Yam (appels audio WebRTC).\n\nBase URL : http://192.168.1.80:8000\nPas d'authentification requise.\n\nOrdre de test :\n1. Get Contacts — liste les appareils enregistrés\n2. Ring — fait sonner un appareil via WebSocket\n3. Signal — envoie un message WebRTC (offer/answer/candidate)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://192.168.1.80:8000",
+			"type": "string"
+		},
+		{
+			"key": "device_id",
+			"value": "test-123",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "1. Get Contacts",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/v1/contacts",
+					"host": ["{{base_url}}"],
+					"path": ["api", "v1", "contacts"]
+				},
+				"description": "Liste tous les appareils enregistrés.\nPas de token requis."
+			},
+			"response": [],
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"pm.test('Réponse contient contacts', function() {",
+							"    pm.expect(jsonData).to.have.property('contacts');",
+							"    pm.expect(jsonData.contacts).to.be.an('array');",
+							"});",
+							"",
+							"if (jsonData.contacts && jsonData.contacts.length > 0) {",
+							"    var first = jsonData.contacts[0];",
+							"    pm.collectionVariables.set('target_user_id', first.user_id);",
+							"    pm.collectionVariables.set('target_device_id', first.device_id || 'unknown');",
+							"    pm.collectionVariables.set('target_username', first.username);",
+							"    console.log('✅ ' + jsonData.contacts.length + ' contact(s) trouvé(s)');",
+							"    console.log('   Premier : ' + first.username + ' (device: ' + (first.device_id || 'N/A') + ')');",
+							"    console.log('   → target_device_id mis à jour');",
+							"} else {",
+							"    console.log('⚠️ Aucun contact trouvé');",
+							"}"
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "2. Ring (Appel entrant)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/v1/call/ring",
+					"host": ["{{base_url}}"],
+					"path": ["api", "v1", "call", "ring"]
+				},
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"to_device_id\": \"{{device_id}}\",\n  \"from_device_id\": \"postman-caller-001\",\n  \"from_username\": \"Postman\",\n  \"type\": \"audio\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"description": "Déclenche une sonnerie sur l'appareil ciblé via WebSocket (Reverb).\n\nLe device_id cible doit correspondre à celui du client connecté à Reverb.\nUtilise 'Get Contacts' d'abord pour récupérer le bon device_id."
+			},
+			"response": [],
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"pm.test('Ring envoyé', function() {",
+							"    pm.expect(jsonData.ok).to.be.true;",
+							"    pm.expect(jsonData).to.have.property('call_id');",
+							"    pm.expect(jsonData.call_id).to.not.be.empty;",
+							"});",
+							"pm.collectionVariables.set('call_id', jsonData.call_id);",
+							"console.log('✅ Call ID : ' + jsonData.call_id);",
+							"console.log('   → Le client connecté au canal device.' + pm.variables.get('device_id') + ' devrait sonner !');"
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "3. WebRTC Signal",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/v1/call/signal",
+					"host": ["{{base_url}}"],
+					"path": ["api", "v1", "call", "signal"]
+				},
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"to_device_id\": \"{{device_id}}\",\n  \"from_device_id\": \"postman-caller-001\",\n  \"type\": \"offer\",\n  \"payload\": {\n    \"sdp\": {\n      \"type\": \"offer\",\n      \"sdp\": \"v=0\\r\\no=- 0 0 IN IP4 127.0.0.1\\r\\ns=-\\r\\nt=0 0\\r\\na=group:BUNDLE 0\\r\\na=extmap-allow-mixed\\r\\na=msid-semantic: WMS stream0\\r\\nm=audio 9 UDP/TLS/RTP/SAVPF 111\\r\\nc=IN IP4 0.0.0.0\\r\\na=rtcp:9 IN IP4 0.0.0.0\\r\\na=ice-ufrag:test1\\r\\na=ice-pwd:testpassword123456\\r\\na=fingerprint:sha-256 AA:BB:CC\\r\\na=setup:actpass\\r\\na=mid:0\\r\\na=sendrecv\\r\\na=msid:stream0 audio0\\r\\na=rtpmap:111 opus/48000/2\\r\\na=fmtp:111 minptime=10;useinbandfec=1\\r\\na=ssrc:12345 cname:test\\r\\n\"\n    }\n  }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"description": "Envoie un message de signaling WebRTC au device ciblé.\n\nTypes :\n- 'offer' : SDP offer (appelant → récepteur)\n- 'answer' : SDP answer (récepteur → appelant)\n- 'candidate' : ICE candidate (échange bidirectionnel)"
+			},
+			"response": [],
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"pm.test('Signal diffusé', function() {",
+							"    pm.expect(jsonData.ok).to.be.true;",
+							"});",
+							"console.log('✅ Signal envoyé au device : ' + pm.collectionVariables.get('device_id'));"
+						]
+					}
+				}
+			]
+		}
+	]
+}

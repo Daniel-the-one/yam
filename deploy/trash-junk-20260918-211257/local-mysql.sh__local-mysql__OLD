@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# =========================================================
+# local-mysql.sh — Instance MariaDB locale de développement
+# =========================================================
+# Monte une instance MariaDB dédiée SANS sudo (utile quand le
+# service système exige un mot de passe root inconnu).
+#
+#   ./local-mysql.sh start    → démarre (initialise au 1er lancement)
+#   ./local-mysql.sh stop     → arrête
+#   ./local-mysql.sh status   → état
+#   ./local-mysql.sh shell    → ouvre un client mysql
+#
+# Paramètres : socket /tmp/opencode/yam-mysql.sock, port 3307
+# Bases attendues : yam, kondjipro (créées par le kit de migration).
+# =========================================================
+set -euo pipefail
+
+DATADIR=/tmp/opencode/yam-mysql
+SOCKET="${DATADIR}.sock"
+PORT=3307
+PIDFILE="${DATADIR}.pid"
+LOG="${DATADIR}.log"
+
+ping_db() { mysqladmin --socket="$SOCKET" -u root ping >/dev/null 2>&1; }
+
+case "${1:-status}" in
+  start)
+    if [ ! -d "$DATADIR" ]; then
+      echo "Initialisation de l'instance dans $DATADIR ..."
+      mariadb-install-db --datadir="$DATADIR" \
+        --auth-root-authentication-method=normal \
+        --user="$(id -un)" --skip-test-db >/dev/null
+    fi
+    if ping_db; then echo "MariaDB déjà démarré (socket $SOCKET)"; exit 0; fi
+    nohup mariadbd --datadir="$DATADIR" --socket="$SOCKET" --port="$PORT" \
+      --bind-address=127.0.0.1 --pid-file="$PIDFILE" > "$LOG" 2>&1 &
+    sleep 5
+    ping_db && echo "MariaDB démarré — socket $SOCKET, port $PORT"
+    ;;
+  stop)
+    if ping_db; then mysqladmin --socket="$SOCKET" -u root shutdown; fi
+    echo "MariaDB arrêté."
+    ;;
+  status)
+    if ping_db; then
+      echo "MariaDB EN MARCHE (socket $SOCKET, port $PORT)"
+      mysql --socket="$SOCKET" -u root -e "SHOW DATABASES;" 2>/dev/null | tail -n +2
+    else
+      echo "MariaDB ARRÊTÉ."
+    fi
+    ;;
+  shell)
+    exec mysql --socket="$SOCKET" -u root
+    ;;
+  *)
+    echo "usage: $0 {start|stop|status|shell}" >&2
+    exit 1
+    ;;
+esac

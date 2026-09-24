@@ -1,0 +1,42 @@
+{
+    "status": "000",
+    "message": "*** Erreur fichier traduction *** recharge_init_success",
+    "information": {
+        "type_transaction": 2,
+        "type_transaction_name": "Recharge",
+        "type_transaction_name_icon": "",
+        "ressource_key": "5qNd64PiqsgPH0bTrquBq1q9wWZcZ6PN",
+        "reference": "TXN_6a3aba62234302.77654017",
+        "wallet_id": "TGW260622001252",
+        "status": 1,
+        "status_show": "En cours",
+        "status_color": "CB9000",
+        "amount": "+6 040 Fcfa",
+        "fees": "3 020 Fcfa",
+        "total_amount": "9 060 Fcfa",
+        "devise": "XOF",
+        "devise_symbol": "Fcfa",
+        "new_balance": "-",
+        "description": "Recharge de 6 040 Fcfa via Mobile Money",
+        "bill_url": "",
+        "phone_number": "22891121670",
+        "add_information": "",
+        "is_third_party": false,
+        "date_transaction": "23/06/2026",
+        "heure_transaction": "16:54",
+        "montant_affiche": "6 040 Fcfa",
+        "devise_affiche": "XOF",
+        "symbole_affiche": "Fcfa",
+        "payment": {
+            "payment_token": "1f16f244648a643c952aaf630eca6ecd019ef5681c0a70be8dd0c2ecb552b773",
+            "payment_url": "https://secure.cinetpay.net/checkout/1f16f244648a643c952aaf630eca6ecd019ef5681c0a70be8dd0c2ecb552b773",
+            "must_be_redirected": true
+        },
+        "destinataire": {
+            "nom": "",
+            "wallet_id": "",
+            "devise": "",
+            "symbole": ""
+        }
+    }
+}

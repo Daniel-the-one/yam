@@ -1,0 +1,18 @@
+<?php
+$b  = dirname(__DIR__) . '/api/public';
+// 1) sessions locales (comptes/PPP intacts)
+$r = 0;
+foreach (glob($b . '/storage/framework/sessions/*') as $f) {
+    if (is_file($f) && basename($f) !== '.gitignore' && unlink($f)) $r++;
+}
+echo 'sessions-révoquées=' . $r . "\n";
+// 2) tokens base MySQL (comptes conservés)
+$n = 0;
+try {
+    require dirname(__DIR__) . '/api/public/config/db.php';
+    $c   = db_config();
+    $pdo = new PDO(sprintf('mysql:unix_socket=%s;dbname=%s;charset=utf8mb4', $c['socket'], $c['name']), $c['user'], $c['pass']);
+    $c   = null;
+    $n   = (int) $pdo->exec('UPDATE users SET api_token = NULL, remember_token = NULL WHERE api_token IS NOT NULL OR remember_token IS NOT NULL');
+} catch (Throwable $e) { $n = -1; echo 'base-erreur' . "\n"; }
+echo 'tokens-révoqués=' . max($n,0) . " · comptes=CONSERVÉS\n";

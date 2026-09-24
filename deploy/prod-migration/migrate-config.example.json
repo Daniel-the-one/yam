@@ -1,0 +1,20 @@
+{
+  "_comment": "Modèle de configuration pour deploy/prod-migration/migrate.php. Copier en migrate-config.json et renseigner les identifiants o2switch. NE JAMAIS versionner migrate-config.json.",
+  "token": "CHANGER-MOI-token-secret-pour-acces-web",
+  "sqlite_path": "/home/koyv0696/public_html/yam/database/database.sqlite",
+  "yam": {
+    "host": "localhost",
+    "port": 3306,
+    "name": "koyv0696_yam",
+    "user": "koyv0696_yam",
+    "pass": "MOT_DE_PASSE_MYSQL"
+  },
+  "kondjipro": {
+    "host": "localhost",
+    "port": 3306,
+    "name": "koyv0696_kondjipro",
+    "user": "koyv0696_kpro",
+    "pass": "MOT_DE_PASSE_MYSQL"
+  },
+  "tables": ["users", "devices", "call_offers", "call_sessions", "appels", "personal_access_tokens"]
+}

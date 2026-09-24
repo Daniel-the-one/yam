@@ -1,0 +1,19 @@
+--- a/src/Protocols/Pusher/Http/Controllers/PusherController.php
++++ b/src/Protocols/Pusher/Http/Controllers/PusherController.php
+@@ -23,8 +23,15 @@
+     /**
+      * Invoke the Reverb WebSocket server.
+      */
+-    public function __invoke(RequestInterface $request, Connection $connection, string $appKey): void
++    public function __invoke(RequestInterface $request, $connection, string $appKey): void
+     {
++        // Le Router peut passer un Http\Connection ou un Connection selon la
++        // résolution de namespace. On normalise vers le Connection attendu
++        // par le reste du code (fix du type mismatch laravel/reverb #344).
++        if (! $connection instanceof Connection) {
++            $connection = new Connection($connection);
++        }
++
+         if (! $reverbConnection = $this->connection($request, $connection, $appKey)) {
+             return;
+         }

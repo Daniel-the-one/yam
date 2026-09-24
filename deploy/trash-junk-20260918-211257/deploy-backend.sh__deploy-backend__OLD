@@ -1,0 +1,143 @@
+#!/usr/bin/env bash
+# =========================================================
+# deploy-backend.sh — Déploie le BACKEND Laravel sur o2switch
+# =========================================================
+#
+# Le deploy.sh ne pousse que api/public/ (frontend SPA).
+# Ce script pousse le backend PHP complet (app/, routes/,
+# config/, database/, bootstrap/, artisan, composer.*) vers
+# la racine du site sur o2switch.
+#
+# ── Usage ────────────────────────────────────────────────
+#   ./deploy-backend.sh            → déploie TOUT le backend
+#   ./deploy-backend.sh <fichier>  → déploie un fichier/dossier
+#                                    (chemin relatif à api/)
+#
+# ── Exemples ─────────────────────────────────────────────
+#   ./deploy-backend.sh
+#   ./deploy-backend.sh app/Http/Controllers/CallController.php
+#   ./deploy-backend.sh routes/api.php
+# =========================================================
+
+set -euo pipefail
+
+CONF="$HOME/.yam-deploy/yam.conf"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+API_DIR="$(dirname "$SCRIPT_DIR")/api"
+
+if [ ! -f "$CONF" ]; then
+  echo "❌ Config introuvable : $CONF" >&2
+  echo "   Lance d'abord : ./deploy.sh setup yam" >&2
+  exit 1
+fi
+
+# ── Lit la config (robuste aux caractères spéciaux) ──────
+conf_get() {
+  grep "^$1=" "$CONF" | cut -d= -f2-
+}
+
+HOST=$(conf_get HOST)
+USER=$(conf_get USER)
+PASS=$(conf_get PASS)
+REMOTE_DIR=$(conf_get REMOTE_DIR)
+
+# Le backend va à la RACINE du site (le /public de la config
+# est le dossier web servi par nginx ; Laravel vit au-dessus).
+BACKEND_REMOTE_DIR="${REMOTE_DIR%/public}"
+
+# ── Dossiers/dossiers du backend à pousser ───────────────
+BACKEND_DIRS=(
+  "app"
+  "bootstrap"
+  "config"
+  "database"
+  "routes"
+  "resources"
+  "lang"
+)
+
+# ── Fichiers JAMAIS poussés (sécurité) ───────────────────
+# La base SQLite de prod vit sur le serveur : la pousser
+# écraserait les données réelles. Le .env contient les secrets.
+EXCLUDED_FILES=(
+  "database/database.sqlite"
+  ".env"
+  ".env.example"
+  "storage/firebase/service-account.json"
+)
+
+# Vérifie si un chemin relatif est exclu
+is_excluded() {
+  local rel="$1"
+  for excl in "${EXCLUDED_FILES[@]}"; do
+    if [ "$rel" = "$excl" ]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+# ── Déploie un fichier ───────────────────────────────────
+deploy_file() {
+  local local_file="$1"
+  local rel_path="${local_file#$API_DIR/}"
+
+  # Sécurité : ne jamais pousser la base ni les secrets
+  if is_excluded "$rel_path"; then
+    echo "⏭️  Exclu (sécurité) : $rel_path"
+    return 0
+  fi
+
+  local remote_path="$BACKEND_REMOTE_DIR/$rel_path"
+
+  echo "📤 $rel_path → $HOST$remote_path"
+  curl --fail --silent --show-error \
+    -u "$USER:$PASS" \
+    --ftp-create-dirs \
+    -T "$local_file" \
+    "ftp://$HOST$remote_path"
+}
+
+# ── Déploie un dossier récursivement ─────────────────────
+deploy_dir() {
+  local dir="$1"
+  echo "📁 Déploiement du dossier : $dir"
+  find "$dir" -type f | while read -r f; do
+    deploy_file "$f"
+  done
+}
+
+# ── Point d'entrée ───────────────────────────────────────
+TARGET="${1:-ALL}"
+
+if [ "$TARGET" = "ALL" ]; then
+  echo "🚀 Déploiement du backend complet → $HOST$BACKEND_REMOTE_DIR"
+
+  # Dossiers PHP
+  for d in "${BACKEND_DIRS[@]}"; do
+    [ -d "$API_DIR/$d" ] && deploy_dir "$API_DIR/$d"
+  done
+
+  # Fichiers racine essentiels
+  for f in artisan composer.json composer.lock; do
+    [ -f "$API_DIR/$f" ] && deploy_file "$API_DIR/$f"
+  done
+
+  echo "✅ Backend déployé."
+  echo ""
+  echo "⚠️  À faire sur le serveur (SSH ou manager o2switch) :"
+  echo "  1. composer install --no-dev --optimize-autoloader"
+  echo "  2. php artisan migrate --force"
+  echo "  3. php artisan config:clear (ou config:cache)"
+  echo "  4. Vérifier storage/firebase/service-account.json ou FIREBASE_SERVICE_ACCOUNT_JSON"
+  echo "  5. php artisan route:list | grep call/cancel (doit répondre)"
+elif [ -d "$API_DIR/$TARGET" ]; then
+  deploy_dir "$API_DIR/$TARGET"
+  echo "✅ Dossier '$TARGET' déployé."
+elif [ -f "$API_DIR/$TARGET" ]; then
+  deploy_file "$API_DIR/$TARGET"
+  echo "✅ Fichier '$TARGET' déployé."
+else
+  echo "❌ Cible introuvable : $TARGET" >&2
+  exit 1
+fi

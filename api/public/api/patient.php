@@ -119,6 +119,24 @@ if (!function_exists('ensure_patient_schema')) {
             } catch (PDOException $e) {}
         }
 
+        // ---------- 3b. Contraintes d'unicité sur telephone (patients & medecins) ----------
+        try {
+            if ($driver === 'sqlite') {
+                $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_patients_tel_unique ON patients(telephone) WHERE telephone IS NOT NULL AND telephone != ''");
+                $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_medecins_tel_unique ON medecins(telephone) WHERE telephone IS NOT NULL AND telephone != ''");
+            } else {
+                // MySQL
+                try {
+                    $pdo->exec("CREATE UNIQUE INDEX idx_patients_tel_unique ON patients(telephone)");
+                } catch (PDOException $e) {}
+                try {
+                    $pdo->exec("CREATE UNIQUE INDEX idx_medecins_tel_unique ON medecins(telephone)");
+                } catch (PDOException $e) {}
+            }
+        } catch (PDOException $e) {
+            error_log("[kondjipro] ensure_patient_schema unique tel: " . $e->getMessage());
+        }
+
         // ---------- 4. Table rendez_vous ----------
         try {
             $pdo->query('SELECT COUNT(*) FROM rendez_vous');

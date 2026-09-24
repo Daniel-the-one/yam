@@ -100,14 +100,13 @@ if (!$pdo) {
     exit;
 }
 
-// ---------- Unicité du téléphone ----------
-$stmt = $pdo->prepare('SELECT id FROM users WHERE phone_number = :p LIMIT 1');
-$stmt->execute([':p' => $phoneE164]);
-if ($stmt->fetch()) {
+// ---------- Unicité du téléphone (users, patients, medecins) ----------
+$check = phone_is_taken($phoneE164, $role);
+if ($check['taken']) {
     http_response_code(409);
     echo json_encode([
         'error'   => 'phone_taken',
-        'message' => 'Ce numéro de téléphone est déjà utilisé.',
+        'message' => $check['message'] ?? 'Ce numéro de téléphone est déjà utilisé.',
     ]);
     exit;
 }

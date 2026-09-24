@@ -1,0 +1,15 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+
+/**
+ * KondjiPro : la racine affiche désormais le portail KondjiPro
+ * (la page Contacts). L'ancienne SPA d'appels WebRTC vit en
+ * historique uniquement (voir deploy/backup-*).
+ *
+ * L'API mobile (/api/v1/*) est INCHANGÉE — routes/api.php.
+ */
+Route::get('/', function () { return redirect('/contact.php'); });
+Route::get('/old', function () {
+    return response()->file(public_path('contact.php'));
+});
