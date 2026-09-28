@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Transaction;
 use App\Services\CinetPayService;
+use App\Services\IdempotencyService;
 use App\Services\WalletService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -38,13 +39,25 @@ class WalletController extends Controller
             'phone_number' => 'required|string|max:20',
         ]);
 
-        $data = app(WalletService::class)->initierRecharge(
-            $request->user(),
-            (float) $validated['montant'],
-            $validated['phone_number'],
+        // `Idempotency-Key` : le client mobile l'envoie pour qu'un double appui
+        // ou un retry réseau ne déclenche pas deux recharges.
+        $resultat = app(IdempotencyService::class)->execute(
+            'wallet.recharge',
+            $request->user()->id,
+            $request->header(IdempotencyService::HEADER_ENTREE),
+            $validated,
+            function () use ($request, $validated) {
+                $data = app(WalletService::class)->initierRecharge(
+                    $request->user(),
+                    (float) $validated['montant'],
+                    $validated['phone_number'],
+                );
+
+                return response()->json($data, 201);
+            }
         );
 
-        return response()->json($data, 201);
+        return $resultat['response'];
     }
 
     /**
@@ -70,14 +83,26 @@ class WalletController extends Controller
             ], 422);
         }
 
-        $data = app(WalletService::class)->effectuerTransfert(
-            $request->user(),
-            (float) $validated['montant'],
-            $validated['destinataire_wallet_id'] ?? null,
-            $validated['phone_number'] ?? null,
+        // `Idempotency-Key` : un transfert rejoué ne doit pas débiter une
+        // seconde fois (constaté en test HTTP réel avant ce correctif).
+        $resultat = app(IdempotencyService::class)->execute(
+            'wallet.transfert',
+            $request->user()->id,
+            $request->header(IdempotencyService::HEADER_ENTREE),
+            $validated,
+            function () use ($request, $validated) {
+                $data = app(WalletService::class)->effectuerTransfert(
+                    $request->user(),
+                    (float) $validated['montant'],
+                    $validated['destinataire_wallet_id'] ?? null,
+                    $validated['phone_number'] ?? null,
+                );
+
+                return response()->json($data, 201);
+            }
         );
 
-        return response()->json($data, 201);
+        return $resultat['response'];
     }
 
     /**

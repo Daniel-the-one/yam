@@ -1,5 +1,6 @@
 <?php
 
+use App\Services\IdempotencyConflictException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -26,4 +27,22 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        // Conflit d'idempotence -> 409, pas 500 : c'est une situation que le
+        // client peut comprendre et corriger (il réessaiera avec une nouvelle
+        // clé), pas une panne serveur. Traité globalement pour que tout
+        // endpoint protégé par `IdempotencyService` en bénéficie.
+        $exceptions->render(function (IdempotencyConflictException $e, Request $request) {
+            if (! $request->is('api/*') && ! $request->expectsJson()) {
+                return null;
+            }
+
+            return response()->json([
+                'message' => $e->getMessage(),
+                'error'   => [
+                    'code'    => 'idempotency_conflict',
+                    'message' => $e->getMessage(),
+                ],
+            ], 409);
+        });
     })->create();

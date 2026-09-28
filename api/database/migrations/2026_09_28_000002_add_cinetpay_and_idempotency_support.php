@@ -43,17 +43,31 @@ return new class extends Migration
 
         Schema::create('idempotency_keys', function (Blueprint $table) {
             $table->id();
-            $table->string('idem_key', 128);
+            // 200 = borne haute acceptée par IdempotencyService (clé UUID ou
+            // aléatoire envoyée par le client ; au-delà on refuse la requête
+            // plutôt que de tronquer silencieusement la clé).
+            $table->string('idem_key', 200);
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->string('endpoint', 64);
             // Empreinte de la requête : si la même clé est réemployée avec un
             // corps différent, c'est une erreur de client (409) et non un rejeu.
             $table->string('request_hash', 64);
-            $table->unsignedSmallInteger('response_status')->default(201);
-            $table->longText('response_body');
+            // Cycle de vie de la réservation : `in_progress` pendant
+            // l'exécution, `completed` quand la réponse a été mémorisée.
+            // C'est ce qui distingue un rejeu d'une requête concurrente encore
+            // en cours (les deux ont le même idem_key et le même request_hash).
+            $table->string('status', 16)->default('in_progress');
+            // NULLABLE : la ligne est insérée AVANT l'exécution, donc la réponse
+            // n'existe pas encore. En NOT NULL l'insertion échouerait.
+            $table->unsignedSmallInteger('response_status')->nullable();
+            $table->longText('response_body')->nullable();
             $table->timestamps();
 
             $table->unique(['user_id', 'endpoint', 'idem_key'], 'idempotency_unique');
+            // Purge des clés anciennes (elles n'ont de sens que le temps du
+            // rejeu réseau) : sans cet index, le DELETE périodique est un
+            // full scan.
+            $table->index('created_at', 'idempotency_created_index');
         });
     }
 
