@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Transaction;
 use App\Models\User;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -29,6 +30,11 @@ class WalletService
 
     /**
      * Garantit que l'utilisateur possède un wallet (wallet_id + key_wallet).
+     *
+     * Génération + écriture sous verrou : deux premiers appels concurrents sur
+     * un compte sans wallet (GET /wallet puis POST /wallet/recharge lancés en
+     * même temps) lisent tous deux un wallet_id vide, et le second écrase le
+     * wallet du premier — qui perd alors ses transactions côté client.
      */
     public function ensureWallet(User $user): User
     {
@@ -36,11 +42,26 @@ class WalletService
             return $user;
         }
 
-        $user->wallet_id = $this->genererWalletId();
-        $user->key_wallet = Str::random(32);
-        $user->save();
+        return DB::transaction(function () use ($user) {
+            $fresh = User::whereKey($user->id)->lockForUpdate()->first();
 
-        return $user->fresh();
+            if (! $fresh) {
+                throw ValidationException::withMessages([
+                    'user' => 'Utilisateur introuvable.',
+                ])->status(404);
+            }
+
+            // Un appel concurrent a pu créer le wallet entre-temps.
+            if ($fresh->wallet_id && $fresh->key_wallet) {
+                return $fresh;
+            }
+
+            $fresh->wallet_id = $this->genererWalletId();
+            $fresh->key_wallet = Str::random(32);
+            $fresh->save();
+
+            return $fresh;
+        });
     }
 
     /**
@@ -250,63 +271,73 @@ class WalletService
             $isInternal = $destinataire !== null && $destinataire->id !== $user->id;
         }
 
-        $reference = $this->genererReference();
+        // La référence définitive est celle qui finit en base : elle est donc
+        // générée DANS la boucle de réessai (une collision UNIQUE en impose
+        // une autre) puis remontée à l'appelant par référence.
+        $reference = null;
 
         // Transfert interne : débit + crédit atomiques, statut "Réussie".
         if ($isInternal) {
-            DB::transaction(function () use ($user, $destinataire, $montant, $fees, $totalDebit, $reference) {
-                $sender = User::whereKey($user->id)->lockForUpdate()->first();
+            $this->reessayerSiCollisionDeReference(function () use ($user, $destinataire, $montant, $fees, $totalDebit, &$reference) {
+                $reference = $this->genererReference();
 
-                // Contrôle du solde SOUS verrou (atomique avec le débit) : deux
-                // demandes concurrentes ne peuvent pas passer toutes deux le
-                // contrôle sur un solde identique avant le débit.
-                if ((float) $sender->solde < $totalDebit) {
-                    throw ValidationException::withMessages([
-                        'montant' => 'Solde insuffisant pour effectuer ce transfert.',
-                    ])->status(402);
-                }
+                DB::transaction(function () use ($user, $destinataire, $montant, $fees, $totalDebit, $reference) {
+                    // Verrous pris dans l'ordre CRISSANT des identifiants : ordre
+                    // global déterministe. Sinon deux transferts croisés
+                    // simultanés (A->B et B->A) prennent les verrous dans des
+                    // ordres inversés et MySQL lève une erreur de deadlock.
+                    [$sender, $recipient] = $this->verrouillerLesDeux($user->id, $destinataire->id);
 
-                $sender->solde = max(0.0, (float) $sender->solde - $totalDebit);
-                $sender->save();
+                    // Contrôle du solde SOUS verrou (atomique avec le débit) : deux
+                    // demandes concurrentes ne peuvent pas passer toutes deux le
+                    // contrôle sur un solde identique avant le débit.
+                    if ((float) $sender->solde < $totalDebit) {
+                        throw ValidationException::withMessages([
+                            'montant' => 'Solde insuffisant pour effectuer ce transfert.',
+                        ])->status(402);
+                    }
 
-                $recipient = User::whereKey($destinataire->id)->lockForUpdate()->first();
-                $recipient->solde = (float) $recipient->solde + $montant;
-                $recipient->save();
+                    $sender->solde = max(0.0, (float) $sender->solde - $totalDebit);
+                    $sender->save();
 
-                $this->creerTransaction($sender, [
-                    'reference' => $reference,
-                    'type' => Transaction::TYPE_TRANSFER,
-                    'type_name' => 'Transfert',
-                    'sens' => Transaction::SENS_DEBIT,
-                    'amount_raw' => $montant,
-                    'fees_raw' => $fees,
-                    'new_balance_raw' => (float) $sender->solde,
-                    'status' => Transaction::STATUS_REUSSIE,
-                    'description' => 'Transfert de ' . $this->formatMontant($montant) . ' ' . $this->deviseSymbol() . ' vers ' . $destinataire->name,
-                    'counterpart_type' => Transaction::COUNTERPART_INTERNAL,
-                    'counterpart_label' => $destinataire->name,
-                    'counterpart_wallet_id' => $destinataire->wallet_id,
-                    'counterpart_nom' => $destinataire->name,
-                ]);
+                    $recipient->solde = (float) $recipient->solde + $montant;
+                    $recipient->save();
 
-                $this->creerTransaction($recipient, [
-                    // Chaque transaction porte sa propre référence (UNIQUE en base).
-                    // Celle du crédit est dérivée de la référence de groupe pour
-                    // préserver la traçabilité du binôme débit/crédit.
-                    'reference' => $reference . '-C',
-                    'type' => Transaction::TYPE_TRANSFER,
-                    'type_name' => 'Transfert',
-                    'sens' => Transaction::SENS_CREDIT,
-                    'amount_raw' => $montant,
-                    'fees_raw' => 0,
-                    'new_balance_raw' => (float) $recipient->solde,
-                    'status' => Transaction::STATUS_REUSSIE,
-                    'description' => 'Transfert de ' . $this->formatMontant($montant) . ' ' . $this->deviseSymbol() . ' vers ' . $recipient->name,
-                    'counterpart_type' => Transaction::COUNTERPART_INTERNAL,
-                    'counterpart_label' => $user->name,
-                    'counterpart_wallet_id' => $user->wallet_id,
-                    'counterpart_nom' => $user->name,
-                ]);
+                    $this->creerTransaction($sender, [
+                        'reference' => $reference,
+                        'type' => Transaction::TYPE_TRANSFER,
+                        'type_name' => 'Transfert',
+                        'sens' => Transaction::SENS_DEBIT,
+                        'amount_raw' => $montant,
+                        'fees_raw' => $fees,
+                        'new_balance_raw' => (float) $sender->solde,
+                        'status' => Transaction::STATUS_REUSSIE,
+                        'description' => 'Transfert de ' . $this->formatMontant($montant) . ' ' . $this->deviseSymbol() . ' vers ' . $destinataire->name,
+                        'counterpart_type' => Transaction::COUNTERPART_INTERNAL,
+                        'counterpart_label' => $destinataire->name,
+                        'counterpart_wallet_id' => $destinataire->wallet_id,
+                        'counterpart_nom' => $destinataire->name,
+                    ]);
+
+                    $this->creerTransaction($recipient, [
+                        // Chaque transaction porte sa propre référence (UNIQUE en base).
+                        // Celle du crédit est dérivée de la référence de groupe pour
+                        // préserver la traçabilité du binôme débit/crédit.
+                        'reference' => $reference . '-C',
+                        'type' => Transaction::TYPE_TRANSFER,
+                        'type_name' => 'Transfert',
+                        'sens' => Transaction::SENS_CREDIT,
+                        'amount_raw' => $montant,
+                        'fees_raw' => 0,
+                        'new_balance_raw' => (float) $recipient->solde,
+                        'status' => Transaction::STATUS_REUSSIE,
+                        'description' => 'Transfert de ' . $this->formatMontant($montant) . ' ' . $this->deviseSymbol() . ' vers ' . $recipient->name,
+                        'counterpart_type' => Transaction::COUNTERPART_INTERNAL,
+                        'counterpart_label' => $user->name,
+                        'counterpart_wallet_id' => $user->wallet_id,
+                        'counterpart_nom' => $user->name,
+                    ]);
+                });
             });
 
             $user->refresh();
@@ -337,21 +368,25 @@ class WalletService
 
         // Transfert Mobile Money : transaction "En cours", aucun mouvement de
         // fonds tant que l'API Mobile Money externe n'a pas confirmé.
-        $this->creerTransaction($user, [
-            'reference' => $reference,
-            'type' => Transaction::TYPE_TRANSFER,
-            'type_name' => 'Transfert',
-            'sens' => Transaction::SENS_DEBIT,
-            'amount_raw' => $montant,
-            'fees_raw' => $fees,
-            'new_balance_raw' => null,
-            'status' => Transaction::STATUS_EN_COURS,
-            'description' => 'Transfert de ' . $this->formatMontant($montant) . ' ' . $this->deviseSymbol() . ' vers ' . $phone . ' via Mobile Money',
-            'counterpart_type' => Transaction::COUNTERPART_MOBILE_MONEY,
-            'counterpart_label' => 'Mobile Money — ' . $phone,
-            'counterpart_wallet_id' => null,
-            'counterpart_nom' => $phone,
-        ]);
+        $this->reessayerSiCollisionDeReference(function () use ($user, $montant, $fees, $phone, &$reference) {
+            $reference = $this->genererReference();
+
+            $this->creerTransaction($user, [
+                'reference' => $reference,
+                'type' => Transaction::TYPE_TRANSFER,
+                'type_name' => 'Transfert',
+                'sens' => Transaction::SENS_DEBIT,
+                'amount_raw' => $montant,
+                'fees_raw' => $fees,
+                'new_balance_raw' => null,
+                'status' => Transaction::STATUS_EN_COURS,
+                'description' => 'Transfert de ' . $this->formatMontant($montant) . ' ' . $this->deviseSymbol() . ' vers ' . $phone . ' via Mobile Money',
+                'counterpart_type' => Transaction::COUNTERPART_MOBILE_MONEY,
+                'counterpart_label' => 'Mobile Money — ' . $phone,
+                'counterpart_wallet_id' => null,
+                'counterpart_nom' => $phone,
+            ]);
+        });
 
         return [
             'status' => '000',
@@ -380,6 +415,59 @@ class WalletService
     // ---------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------
+
+    /**
+     * Exécute $operation, en la réexécutant si elle se heurte à une contrainte
+     * UNIQUE (collision de référence).
+     *
+     * Le contrôle préalable par SELECT de genererReference()/genererWalletId()
+     * est sujet à une course (TOCTOU) : deux requêtes concurrentes lisent le
+     * même état et passent toutes deux le contrôle. Seul l'index UNIQUE fait
+     * autorité — c'est donc sa violation qui doit déclencher un nouvel essai.
+     *
+     * Le réessai est sans risque : chaque tentative est atomic (transaction
+     * annulée ou simple INSERT), donc un nouvel essai repart d'un état propre
+     * et ne peut jamais débiter deux fois.
+     */
+    private function reessayerSiCollisionDeReference(callable $operation): void
+    {
+        $tentatives = 3;
+
+        for ($i = 1; $i <= $tentatives; $i++) {
+            try {
+                $operation();
+
+                return;
+            } catch (UniqueConstraintViolationException $e) {
+                if ($i === $tentatives) {
+                    throw $e;
+                }
+            }
+        }
+    }
+
+    /**
+     * Verrouille deux utilisateurs dans un ordre global déterministe (id
+     * croissant) et les retourne sous la forme [emetteur, destinataire].
+     *
+     * Un ordre de verrouillage dépendant du sens du transfert sérialise deux
+     * transferts croisés (A->B et B->A) dans des ordres inversés : MySQL
+     * détecte le cycle et annule l'un des deux en deadlock.
+     *
+     * @return array{0: User, 1: User}
+     */
+    private function verrouillerLesDeux(int $emetteurId, int $destinataireId): array
+    {
+        $ids = [$emetteurId, $destinataireId];
+        sort($ids);
+
+        $verrouilles = [];
+        foreach ($ids as $id) {
+            $verrouilles[$id] = User::whereKey($id)->lockForUpdate()->first();
+        }
+
+        return [$verrouilles[$emetteurId], $verrouilles[$destinataireId]];
+    }
 
     /**
      * Formate une transaction au format de l'API externe (champs dérivés
@@ -527,7 +615,13 @@ class WalletService
 
     private function genererWalletId(): string
     {
-        for ($i = 0; $i < 5; $i++) {
+        // Format imposé par le contrat de l'API externe :
+        // TGW + aammjj + 6 chiffres (ex. TGW260622001252).
+        // L'espace de 6 chiffres est REFAIT chaque jour (1 000 000 de
+        // combinaisons) : les collisions birthday deviennent réelles bien avant
+        // le million d'utilisateurs, d'où 10 essais (et non 5) avant de
+        // s'appuyer sur l'index UNIQUE pour rejeter la valeur.
+        for ($i = 0; $i < 10; $i++) {
             $id = 'TGW' . now()->format('ymd') . str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
             if (! User::where('wallet_id', $id)->exists()) {
                 return $id;

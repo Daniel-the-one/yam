@@ -228,6 +228,68 @@ class AppelsFacturesTest extends TestCase
         }
     }
 
+    /**
+     * RÉGRESSION precision microseconde (le bug que ce test couvre).
+     *
+     * Carbon 3 renvoie un FLOAT de diffInSeconds() et Appel::$dateFormat
+     * = 'Y-m-d H:i:s.u' : le cout est calcule a la microseconde. Mais si les
+     * colonnes `appels` sont en `timestamp` (0 decimale), MySQL/MariaDB
+     * arrondit la fraction a la seconde AU STOCKAGE -> jusqu'a +/-1 s
+     * d'ecart de facturation (+/-1,67 F a 100 F/min).
+     *
+     * Ce test fige le temps avec une composante microseconde non nulle
+     * (10,52 s) : il ECHOUE sous timestamp(0) (cout 16,67 ou 18,33) et
+     * REUSSIT sous timestamp(6) (cout 17,53). Sous SQLite il passe dans les
+     * deux cas (le microseconde est conserve en texte) : c'est precisement
+     * pour cela que la suite -- qui tourne sur SQLite -- ne voyait pas le
+     * defaut. Executer aussi la suite sur MySQL pour couvrir ce cas.
+     */
+    public function test_facturation_conserve_la_precision_microseconde(): void
+    {
+        Carbon::setTestNow('2026-09-16 12:00:00.000000');
+
+        try {
+            $patient = $this->createPatient(500);
+            $medecin = $this->createMedecin();
+
+            $appel = Appel::create([
+                'patient_id'       => $patient->id,
+                'medecin_id'       => $medecin->id,
+                'initie_par'       => 'patient',
+                'status'           => Appel::STATUS_DECROCHE,
+                'tarif_par_minute' => 100.00,
+                'solde_consomme'   => 0.00,
+                'date_decroche'    => now(),
+            ]);
+
+            // Fin d'appel a 10,52 s exactes (et non 10 s pile).
+            Carbon::setTestNow('2026-09-16 12:00:10.520000');
+
+            Sanctum::actingAs($patient);
+            $this->postJson('/api/v1/appels/' . $appel->id . '/terminer', ['raison' => 'raccroche_manuel'])
+                ->assertOk();
+
+            // 1) La colonne conserve bien la fraction de seconde.
+            $brut = DB::table('appels')->where('id', $appel->id)->value('date_fin');
+            $this->assertStringContainsString(
+                '.52',
+                (string) $brut,
+                'date_fin a perdu la precision microseconde : la colonne n\'est probablement pas en timestamp(6).'
+            );
+
+            // 2) Le cout reflects bien 10,52 s et non 10 s ou 11 s.
+            //    10,52 / 60 x 100 = 17,5333 -> 17,53 F
+            $appelDb = Appel::find($appel->id);
+            $this->assertEqualsWithDelta(17.53, (float) $appelDb->solde_consomme, 0.01);
+            $this->assertDatabaseHas('users', [
+                'id'    => $patient->id,
+                'solde' => 500 - $appelDb->solde_consomme,
+            ]);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
     public function test_show_appel_non_participant_renvoie_403(): void
     {
         $patient = $this->createPatient();
