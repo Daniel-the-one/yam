@@ -152,22 +152,48 @@ class WalletService
     /**
      * Initie une recharge via Mobile Money (POST /api/v1/wallet/recharge).
      *
-     * Crée une transaction status=1 (En cours) SANS créditer le solde : le
-     * crédit n'interviendra qu'à la confirmation CinetPay (webhook). Tant que
-     * les clés CinetPay ne sont pas configurées, la payment_url est générée
-     * localement (checkout CinetPay) sans appel réel.
+     * Deux régimes, et le client le voit explicitement dans `payment.mode` :
+     *
+     * - CinetPay configuré : appel RÉEL à la Checkout API, le solde n'est
+     *   crédité que sur confirmation du webhook (confirmerRecharge).
+     * - CinetPay non configuré : mode SIMULATION. Une transaction « En cours »
+     *   est créée et AUCUNE URL de paiement n'est renvoyée — inventer une URL
+     *   de checkout qui n'existe pas afficherait au client un « paiement » qui
+     *   mènerait à une 404. Le client doit refuser la redirection.
+     *
+     * Le montant envoyé à CinetPay est un entier multiple de 5 (exigence du
+     * prestataire), obtenu en arrondissant le total au-dessus : le client est
+     * informé de ce montant réellement débité via `payment.amount`.
      */
     public function initierRecharge(User $user, float $montant, string $phone): array
     {
         $user = $this->ensureWallet($user);
 
+        $cinetpay = app(CinetPayService::class);
+        $configure = $cinetpay->estConfigure();
+
         $fees = round($montant * (float) config('wallet.frais_recharge'), 2);
         $total = $montant + $fees;
         $reference = $this->genererReference();
         $ressourceKey = Str::random(32);
-        $paymentToken = bin2hex(random_bytes(32));
-        $paymentUrl = config('wallet.cinetpay.checkout_url') . $paymentToken;
 
+        // Montant réellement débité : multiple de 5 exigé par CinetPay.
+        $montantDebite = $configure
+            ? CinetPayService::arrondirMontantCinetPay($total)
+            : (int) ceil($total);
+
+        // 1) Initialisation chez le prestataire AVANT l'écriture en base : si
+        //    CinetPay échoue, aucune recharge fantôme ne reste en base.
+        $paiement = null;
+        if ($configure) {
+            $paiement = $cinetpay->initialiserPaiement(
+                $reference,
+                $montantDebite,
+                'Recharge wallet ' . $this->formatMontant($montant) . ' ' . $this->deviseSymbol()
+            );
+        }
+
+        // 2) Écriture de la recharge en attente, rattachée au prestataire.
         $this->creerTransaction($user, [
             'reference' => $reference,
             'type' => Transaction::TYPE_TOPUP,
@@ -182,6 +208,9 @@ class WalletService
             'counterpart_label' => 'Recharge via ' . $phone,
             'counterpart_wallet_id' => null,
             'counterpart_nom' => 'Mobile Money',
+            'provider' => $configure ? 'cinetpay' : null,
+            'provider_transaction_id' => $reference,
+            'provider_payment_token' => $paiement['payment_token'] ?? null,
         ]);
 
         return [
@@ -214,9 +243,14 @@ class WalletService
                 'devise_affiche' => config('wallet.devise'),
                 'symbole_affiche' => $this->deviseSymbol(),
                 'payment' => [
-                    'payment_token' => $paymentToken,
-                    'payment_url' => $paymentUrl,
-                    'must_be_redirected' => true,
+                    // Le client doit rediriger UNIQUEMENT en mode « reel » :
+                    // en simulation il n'y a aucune page de paiement à appeler.
+                    'mode' => $configure ? 'reel' : 'simulation',
+                    'provider' => 'cinetpay',
+                    'payment_token' => $paiement['payment_token'] ?? '',
+                    'payment_url' => $paiement['payment_url'] ?? '',
+                    'must_be_redirected' => (bool) ($paiement['must_be_redirected'] ?? false),
+                    'amount' => $montantDebite,
                 ],
                 'destinataire' => [
                     'nom' => '',
@@ -226,6 +260,88 @@ class WalletService
                 ],
             ],
         ];
+    }
+
+    /**
+     * Confirme une recharge à partir de la notification CinetPay : crédite le
+     * solde et passe la transaction en « Réussie ».
+     *
+     * IDEMPOTENTE et fail-closed — c'est le point le plus sensible de
+     * l'intégration, donc tout y est verrouillé et vérifié :
+     * - verrou de ligne sur la transaction ET sur l'utilisateur, donc deux
+     *   notifications simultanées ne créditent pas deux fois ;
+     * - une transaction déjà réglée renvoie sans rien faire (rejeu de webhook) ;
+     * - le montant crédité est celui de la transaction en base, JAMAIS celui
+     *   de la notification : un corps de requête forgé ne peut pas contrôler
+     *   le montant crédité ni le destinataire.
+     *
+     * @return array{credit: bool, raison: string}
+     */
+    public function confirmerRecharge(string $providerTransactionId): array
+    {
+        $recharge = Transaction::where('provider_transaction_id', $providerTransactionId)
+            ->where('type', Transaction::TYPE_TOPUP)
+            ->first();
+
+        if (! $recharge) {
+            return ['credit' => false, 'raison' => 'recharge_introuvable'];
+        }
+
+        return DB::transaction(function () use ($recharge) {
+            $ligne = Transaction::whereKey($recharge->id)->lockForUpdate()->first();
+
+            // Webhook rejoué (CinetPay notifie parfois plusieurs fois) : déjà réglé.
+            if ($ligne->status !== Transaction::STATUS_EN_COURS) {
+                return ['credit' => false, 'raison' => 'deja_traitee'];
+            }
+
+            $user = User::whereKey($ligne->user_id)->lockForUpdate()->first();
+
+            if (! $user) {
+                return ['credit' => false, 'raison' => 'utilisateur_introuvable'];
+            }
+
+            $nouveauSolde = (float) $user->solde + (float) $ligne->amount_raw;
+
+            $ligne->status = Transaction::STATUS_REUSSIE;
+            $ligne->new_balance_raw = $nouveauSolde;
+            $ligne->date_complete = now();
+            $ligne->save();
+
+            $user->solde = $nouveauSolde;
+            $user->save();
+
+            return ['credit' => true, 'raison' => 'solde_credite'];
+        });
+    }
+
+    /**
+     * Marque une recharge comme définitivement échouée (notification d'échec ou
+     * abandon). Aucun mouvement de fonds, la transaction reste traçable.
+     */
+    public function echouerRecharge(string $providerTransactionId): array
+    {
+        $recharge = Transaction::where('provider_transaction_id', $providerTransactionId)
+            ->where('type', Transaction::TYPE_TOPUP)
+            ->first();
+
+        if (! $recharge) {
+            return ['credit' => false, 'raison' => 'recharge_introuvable'];
+        }
+
+        return DB::transaction(function () use ($recharge) {
+            $ligne = Transaction::whereKey($recharge->id)->lockForUpdate()->first();
+
+            if ($ligne->status !== Transaction::STATUS_EN_COURS) {
+                return ['credit' => false, 'raison' => 'deja_traitee'];
+            }
+
+            $ligne->status = Transaction::STATUS_ECHOUEE;
+            $ligne->date_complete = now();
+            $ligne->save();
+
+            return ['credit' => false, 'raison' => 'recharge_echouee'];
+        });
     }
 
     // ---------------------------------------------------------------

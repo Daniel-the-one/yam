@@ -29,6 +29,15 @@ if (config('app.debug')) {
 Route::post('/v1/auth/register', [AuthController::class, 'register'])->middleware('throttle:10,1');
 Route::post('/v1/auth/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
 
+/**
+ * Webhook CinetPay — PAS d'auth utilisateur : l'appel vient du prestataire.
+ * Sa sécurité repose sur des vérifications en base (transaction en attente,
+ * site_id, montant, idempotence), pas sur un jeton d'utilisateur.
+ * Throttle large mais présent : borne le coût d'un spam de notifications.
+ */
+Route::post('/v1/wallet/recharge/notify', [WalletController::class, 'notifyRecharge'])
+    ->middleware('throttle:120,1');
+
 // ---------------------------------------------------------
 // Routes protégées par Sanctum (accès sécurisé)
 // ---------------------------------------------------------
