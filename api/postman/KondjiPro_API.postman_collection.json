@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "KondjiPro API (Laravel)",
-    "description": "Collection de test pour toute l'API KondjiPro (api/ Laravel 13).\n\nORDRE D'EXÉCUTION : les dossiers sont numérotés et s'exécutent de haut en bas. Les requêtes s'enchaînent (un login fournit le jeton utilisé plus bas), donc ne lance pas une requête isolée au milieu.\n\nPRÉREQUIS :\n  1. php artisan migrate\n  2. php artisan yam:seed-demo   (crée un patient, un médecin, un patientApprovisionné)\n  3. php artisan serve --host=127.0.0.1 --port=8081\n\nDans Postman : importer la collection, puis l'environnement `KondjiPro_Local.postman_environment.json`, puis « Run collection ».\n\nLIMITE CONNUE : le compte médecin ne peut PAS être créé par l'API (register force role=patient). Sans le seeder, les 6 endpoints d'appels sont intestables. Cette limite est volontairement documentée par un test.",
+    "description": "Collection de test pour toute l'API KondjiPro (api/ Laravel 13).\n\nORDRE D'EXÉCUTION : les dossiers sont numérotés et s'exécutent de haut en bas. Les requêtes s'enchaînent (un login fournit le jeton utilisé plus bas), donc ne lance pas une requête isolée au milieu.\n\nPRÉREQUIS :\n  1. php artisan migrate\n  2. php artisan yam:seed-demo   (crée un patient, un médecin, un patientApprovisionné)\n  3. php artisan serve --host=127.0.0.1 --port=8081\n  4. sélectionner l'environnement `KondjiPro Local` avant d'exécuter la suite\n\nDans Postman : importer la collection, puis l'environnement `KondjiPro_Local.postman_environment.json`, puis « Run collection ».\n\nLes requêtes POST utilisent Body > form-data. Les valeurs de téléphone/montant à fournir sont laissées vides ; les valeurs stables et variables générées restent préremplies.\n\nLIMITE CONNUE : le compte médecin ne peut PAS être créé par l'API (register force role=patient). Sans le seeder, les 6 endpoints d'appels sont intestables. Cette limite est volontairement documentée par un test.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -17,39 +17,39 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://127.0.0.1:8081",
+      "value": "https://yam.mdkrlabs.dev",
       "type": "string",
-      "description": "Laravel artisan serve. Si tu testes via `php artisan serve` sur le port 8000, change ici."
+      "description": "URL de production Yam. Pour lancer les tests automatisés, active plutôt l'environnement KondjiPro Local."
     },
     {
       "key": "demoPassword",
-      "value": "DemoPass123!",
+      "value": "",
       "type": "string",
-      "description": "Mot de passe commun aux comptes de `php artisan yam:seed-demo`."
+      "description": "Mot de passe du compte de test (fourni dans l'environnement local uniquement)."
     },
     {
       "key": "phoneApprovisionne",
-      "value": "+228900000003",
+      "value": "",
       "type": "string",
-      "description": "Patient avec 50 000 F — seul compte permettant de tester ce qui coûte de l'argent."
+      "description": "Numéro du patient approvisionné ; vide en production, fourni dans l'environnement local de test."
     },
     {
       "key": "phoneMedecin",
-      "value": "+228900000002",
+      "value": "",
       "type": "string",
-      "description": "Compte médecin. INCRÉABLE par l'API (register force le rôle patient)."
+      "description": "Numéro du médecin ; vide en production, fourni dans l'environnement local de test."
     },
     {
       "key": "phonePatient",
-      "value": "+228900000001",
+      "value": "",
       "type": "string",
-      "description": "Patient à solde 0, sert aux cas d'erreur 402 / 422."
+      "description": "Numéro du patient ; vide en production, fourni dans l'environnement local de test."
     },
     {
       "key": "siteIdCinetPay",
-      "value": "site-de-test",
+      "value": "",
       "type": "string",
-      "description": "site_id CinetPay attendu. Sans clés réelles configurées, aucun webhook ne peut aboutir."
+      "description": "site_id CinetPay ; à définir selon l'environnement."
     },
     {
       "key": "phoneFree",
@@ -317,10 +317,6 @@
               {
                 "key": "Accept",
                 "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
               }
             ],
             "url": {
@@ -347,13 +343,33 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"phone_number\": \"{{phoneApprovisionne}}\",\n  \"password\": \"{{demoPassword}}\",\n  \"device_id\": \"postman-appro\",\n  \"platform\": \"web\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "phone_number",
+                  "value": "{{phoneApprovisionne}}",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "password",
+                  "value": "{{demoPassword}}",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "device_id",
+                  "value": "postman-appro",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "platform",
+                  "value": "web",
+                  "type": "text",
+                  "enabled": true
                 }
-              }
+              ]
             }
           },
           "event": [
@@ -384,10 +400,6 @@
               {
                 "key": "Accept",
                 "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
               }
             ],
             "url": {
@@ -414,13 +426,33 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"phone_number\": \"{{phoneMedecin}}\",\n  \"password\": \"{{demoPassword}}\",\n  \"device_id\": \"postman-med\",\n  \"platform\": \"web\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "phone_number",
+                  "value": "{{phoneMedecin}}",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "password",
+                  "value": "{{demoPassword}}",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "device_id",
+                  "value": "postman-med",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "platform",
+                  "value": "web",
+                  "type": "text",
+                  "enabled": true
                 }
-              }
+              ]
             }
           },
           "event": [
@@ -446,10 +478,6 @@
             "header": [
               {
                 "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
                 "value": "application/json"
               }
             ],
@@ -477,13 +505,33 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"phone_number\": \"{{phonePatient}}\",\n  \"password\": \"{{demoPassword}}\",\n  \"device_id\": \"postman-pat\",\n  \"platform\": \"web\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "phone_number",
+                  "value": "{{phonePatient}}",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "password",
+                  "value": "{{demoPassword}}",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "device_id",
+                  "value": "postman-pat",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "platform",
+                  "value": "web",
+                  "type": "text",
+                  "enabled": true
                 }
-              }
+              ]
             }
           },
           "event": [
@@ -509,10 +557,6 @@
             "header": [
               {
                 "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
                 "value": "application/json"
               }
             ],
@@ -540,13 +584,39 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Postman Test\",\n  \"phone_number\": \"{{phoneFree}}\",\n  \"password\": \"{{demoPassword}}\",\n  \"device_id\": \"postman-register-{{$randomInt}}\",\n  \"platform\": \"web\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Postman Test",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "phone_number",
+                  "value": "{{phoneFree}}",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "password",
+                  "value": "{{demoPassword}}",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "device_id",
+                  "value": "postman-register-{{$randomInt}}",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "platform",
+                  "value": "web",
+                  "type": "text",
+                  "enabled": true
                 }
-              }
+              ]
             }
           },
           "event": [
@@ -584,10 +654,6 @@
               {
                 "key": "Accept",
                 "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
               }
             ],
             "url": {
@@ -614,13 +680,45 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Postman Role\",\n  \"phone_number\": \"{{phoneFree2}}\",\n  \"password\": \"{{demoPassword}}\",\n  \"role\": \"medecin\",\n  \"device_id\": \"postman-role-{{$randomInt}}\",\n  \"platform\": \"web\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Postman Role",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "phone_number",
+                  "value": "{{phoneFree2}}",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "password",
+                  "value": "{{demoPassword}}",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "role",
+                  "value": "medecin",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "device_id",
+                  "value": "postman-role-{{$randomInt}}",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "platform",
+                  "value": "web",
+                  "type": "text",
+                  "enabled": true
                 }
-              }
+              ]
             }
           },
           "event": [
@@ -659,10 +757,6 @@
               {
                 "key": "Accept",
                 "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
               }
             ],
             "url": {
@@ -682,13 +776,39 @@
               "type": "noauth"
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Court\",\n  \"phone_number\": \"{{phoneErr}}\",\n  \"password\": \"court\",\n  \"device_id\": \"d-err\",\n  \"platform\": \"web\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Court",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "phone_number",
+                  "value": "{{phoneErr}}",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "password",
+                  "value": "court",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "device_id",
+                  "value": "d-err",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "platform",
+                  "value": "web",
+                  "type": "text",
+                  "enabled": true
                 }
-              }
+              ]
             }
           },
           "event": [
@@ -721,10 +841,6 @@
               {
                 "key": "Accept",
                 "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
               }
             ],
             "url": {
@@ -744,13 +860,21 @@
               "type": "noauth"
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"phone_number\": \"{{phoneApprovisionne}}\",\n  \"password\": \"MauvaisMotDePasse123\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "phone_number",
+                  "value": "{{phoneApprovisionne}}",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "password",
+                  "value": "MauvaisMotDePasse123",
+                  "type": "text",
+                  "enabled": true
                 }
-              }
+              ]
             }
           },
           "event": [
@@ -1052,10 +1176,6 @@
               {
                 "key": "Accept",
                 "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
               }
             ],
             "url": {
@@ -1082,13 +1202,27 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"label\": \"Postman Device\",\n  \"device_id\": \"postman-dev-{{$randomInt}}\",\n  \"platform\": \"web\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "label",
+                  "value": "Postman Device",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "device_id",
+                  "value": "postman-dev-{{$randomInt}}",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "platform",
+                  "value": "web",
+                  "type": "text",
+                  "enabled": true
                 }
-              }
+              ]
             }
           },
           "event": [
@@ -1268,10 +1402,6 @@
                 "value": "application/json"
               },
               {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
                 "key": "Idempotency-Key",
                 "value": "{{idemRecharge}}",
                 "type": "text"
@@ -1301,13 +1431,21 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"montant\": 2000,\n  \"phone_number\": \"22891112233\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "montant",
+                  "value": "",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "phone_number",
+                  "value": "",
+                  "type": "text",
+                  "enabled": true
                 }
-              }
+              ]
             }
           },
           "event": [
@@ -1367,10 +1505,6 @@
                 "value": "application/json"
               },
               {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
                 "key": "Idempotency-Key",
                 "value": "{{idemRecharge}}",
                 "type": "text"
@@ -1400,13 +1534,21 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"montant\": 2000,\n  \"phone_number\": \"22891112233\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "montant",
+                  "value": "",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "phone_number",
+                  "value": "",
+                  "type": "text",
+                  "enabled": true
                 }
-              }
+              ]
             }
           },
           "event": [
@@ -1435,10 +1577,6 @@
             "header": [
               {
                 "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
                 "value": "application/json"
               },
               {
@@ -1471,13 +1609,21 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"montant\": 2000,\n  \"phone_number\": \"22891112233\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "montant",
+                  "value": "",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "phone_number",
+                  "value": "",
+                  "type": "text",
+                  "enabled": true
                 }
-              }
+              ]
             }
           },
           "event": [
@@ -1562,10 +1708,6 @@
                 "value": "application/json"
               },
               {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
                 "key": "Idempotency-Key",
                 "value": "{{idemTransfert}}",
                 "type": "text"
@@ -1595,13 +1737,21 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"montant\": 1000,\n  \"destinataire_wallet_id\": \"{{walletPatient}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "montant",
+                  "value": "",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "destinataire_wallet_id",
+                  "value": "{{walletPatient}}",
+                  "type": "text",
+                  "enabled": true
                 }
-              }
+              ]
             }
           },
           "event": [
@@ -1736,10 +1886,6 @@
                 "value": "application/json"
               },
               {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
                 "key": "Idempotency-Key",
                 "value": "pm-402-{{$randomInt}}",
                 "type": "text"
@@ -1769,13 +1915,21 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"montant\": 999999,\n  \"destinataire_wallet_id\": \"{{walletApprovisionne}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "montant",
+                  "value": "",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "destinataire_wallet_id",
+                  "value": "{{walletApprovisionne}}",
+                  "type": "text",
+                  "enabled": true
                 }
-              }
+              ]
             }
           },
           "event": [
@@ -1800,10 +1954,6 @@
             "header": [
               {
                 "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
                 "value": "application/json"
               },
               {
@@ -1836,13 +1986,21 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"montant\": 5000,\n  \"destinataire_wallet_id\": \"{{walletPatient}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "montant",
+                  "value": "",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "destinataire_wallet_id",
+                  "value": "{{walletPatient}}",
+                  "type": "text",
+                  "enabled": true
                 }
-              }
+              ]
             }
           },
           "event": [
@@ -1867,10 +2025,6 @@
             "header": [
               {
                 "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
                 "value": "application/json"
               }
             ],
@@ -1898,13 +2052,15 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"montant\": 1000\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "montant",
+                  "value": "",
+                  "type": "text",
+                  "enabled": true
                 }
-              }
+              ]
             }
           },
           "event": [
@@ -1932,10 +2088,6 @@
               {
                 "key": "Accept",
                 "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
               }
             ],
             "url": {
@@ -1956,13 +2108,27 @@
               "type": "noauth"
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"code\": 200,\n  \"amount\": 2200,\n  \"site_id\": \"{{siteIdCinetPay}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "code",
+                  "value": "200",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "amount",
+                  "value": "",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "site_id",
+                  "value": "{{siteIdCinetPay}}",
+                  "type": "text",
+                  "enabled": true
                 }
-              }
+              ]
             }
           },
           "event": [
@@ -1988,10 +2154,6 @@
               {
                 "key": "Accept",
                 "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
               }
             ],
             "url": {
@@ -2012,13 +2174,27 @@
               "type": "noauth"
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"transaction_id\": \"TXN_reference_inexistante_0001\",\n  \"code\": 200,\n  \"amount\": 2200\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "transaction_id",
+                  "value": "TXN_reference_inexistante_0001",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "code",
+                  "value": "200",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "amount",
+                  "value": "",
+                  "type": "text",
+                  "enabled": true
                 }
-              }
+              ]
             }
           },
           "event": [
@@ -2044,10 +2220,6 @@
               {
                 "key": "Accept",
                 "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
               }
             ],
             "url": {
@@ -2068,13 +2240,33 @@
               "type": "noauth"
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"transaction_id\": \"{{rechargeReference}}\",\n  \"code\": 200,\n  \"amount\": 1,\n  \"site_id\": \"{{siteIdCinetPay}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "transaction_id",
+                  "value": "{{rechargeReference}}",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "code",
+                  "value": "200",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "amount",
+                  "value": "",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "site_id",
+                  "value": "{{siteIdCinetPay}}",
+                  "type": "text",
+                  "enabled": true
                 }
-              }
+              ]
             }
           },
           "event": [
@@ -2102,10 +2294,6 @@
               {
                 "key": "Accept",
                 "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
               }
             ],
             "url": {
@@ -2126,13 +2314,27 @@
               "type": "noauth"
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"transaction_id\": \"{{rechargeReference}}\",\n  \"amount\": 2200,\n  \"site_id\": \"{{siteIdCinetPay}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "transaction_id",
+                  "value": "{{rechargeReference}}",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "amount",
+                  "value": "",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "site_id",
+                  "value": "{{siteIdCinetPay}}",
+                  "type": "text",
+                  "enabled": true
                 }
-              }
+              ]
             }
           },
           "event": [
@@ -2158,10 +2360,6 @@
               {
                 "key": "Accept",
                 "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
               }
             ],
             "url": {
@@ -2182,13 +2380,33 @@
               "type": "noauth"
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"transaction_id\": \"{{rechargeReference}}\",\n  \"code\": 200,\n  \"amount\": 2200,\n  \"site_id\": \"site-dun-attaquant\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "transaction_id",
+                  "value": "{{rechargeReference}}",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "code",
+                  "value": "200",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "amount",
+                  "value": "",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "site_id",
+                  "value": "site-dun-attaquant",
+                  "type": "text",
+                  "enabled": true
                 }
-              }
+              ]
             }
           },
           "event": [
@@ -2217,10 +2435,6 @@
               {
                 "key": "Accept",
                 "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
               }
             ],
             "url": {
@@ -2247,13 +2461,15 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"destination_user_id\": \"{{userIdMedecin}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "destination_user_id",
+                  "value": "{{userIdMedecin}}",
+                  "type": "text",
+                  "enabled": true
                 }
-              }
+              ]
             }
           },
           "event": [
@@ -2279,10 +2495,6 @@
             "header": [
               {
                 "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
                 "value": "application/json"
               }
             ],
@@ -2310,13 +2522,15 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"destination_user_id\": \"{{userIdMedecin}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "destination_user_id",
+                  "value": "{{userIdMedecin}}",
+                  "type": "text",
+                  "enabled": true
                 }
-              }
+              ]
             }
           },
           "event": [
@@ -2339,10 +2553,6 @@
             "header": [
               {
                 "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
                 "value": "application/json"
               }
             ],
@@ -2370,13 +2580,15 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"destination_user_id\": \"{{userIdMedecin}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "destination_user_id",
+                  "value": "{{userIdMedecin}}",
+                  "type": "text",
+                  "enabled": true
                 }
-              }
+              ]
             }
           },
           "event": [
@@ -2401,10 +2613,6 @@
             "header": [
               {
                 "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
                 "value": "application/json"
               }
             ],
@@ -2432,13 +2640,15 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"destination_user_id\": \"{{userIdPatient}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "destination_user_id",
+                  "value": "{{userIdPatient}}",
+                  "type": "text",
+                  "enabled": true
                 }
-              }
+              ]
             }
           },
           "event": [
@@ -2491,13 +2701,8 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "mode": "formdata",
+              "formdata": []
             }
           },
           "event": [
@@ -2548,13 +2753,8 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "mode": "formdata",
+              "formdata": []
             }
           },
           "event": [
@@ -2605,13 +2805,8 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "mode": "formdata",
+              "formdata": []
             }
           },
           "event": [
@@ -2662,13 +2857,8 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "mode": "formdata",
+              "formdata": []
             }
           },
           "event": [
@@ -2690,10 +2880,6 @@
             "header": [
               {
                 "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
                 "value": "application/json"
               }
             ],
@@ -2722,13 +2908,15 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"raison\": \"raccroche_manuel\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "raison",
+                  "value": "raccroche_manuel",
+                  "type": "text",
+                  "enabled": true
                 }
-              }
+              ]
             }
           },
           "event": [
@@ -2859,10 +3047,6 @@
               {
                 "key": "Accept",
                 "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
               }
             ],
             "url": {
@@ -2889,13 +3073,15 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"destination_user_id\": \"{{userIdApprovisionne}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "destination_user_id",
+                  "value": "{{userIdApprovisionne}}",
+                  "type": "text",
+                  "enabled": true
                 }
-              }
+              ]
             }
           },
           "event": [
@@ -2949,13 +3135,8 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "mode": "formdata",
+              "formdata": []
             }
           },
           "event": [
@@ -2977,10 +3158,6 @@
             "header": [
               {
                 "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
                 "value": "application/json"
               }
             ],
@@ -3009,13 +3186,15 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"raison\": \"non_decroche\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "raison",
+                  "value": "non_decroche",
+                  "type": "text",
+                  "enabled": true
                 }
-              }
+              ]
             }
           },
           "event": [
@@ -3143,10 +3322,6 @@
               {
                 "key": "Accept",
                 "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
               }
             ],
             "url": {
@@ -3173,13 +3348,27 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"to_user_id\": \"{{userIdMedecin}}\",\n  \"from_device_id\": \"postman-webrtc-appro\",\n  \"type\": \"audio\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "to_user_id",
+                  "value": "{{userIdMedecin}}",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "from_device_id",
+                  "value": "postman-webrtc-appro",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "type",
+                  "value": "audio",
+                  "type": "text",
+                  "enabled": true
                 }
-              }
+              ]
             }
           },
           "event": [
@@ -3204,10 +3393,6 @@
             "header": [
               {
                 "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
                 "value": "application/json"
               }
             ],
@@ -3235,13 +3420,39 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"call_id\": \"{{callId}}\",\n  \"from_device_id\": \"postman-webrtc-appro\",\n  \"type\": \"offer\",\n  \"to_user_id\": \"{{userIdMedecin}}\",\n  \"payload\": {\n    \"sdp\": \"v=0\\\\r\\\\n...\"\n  }\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "call_id",
+                  "value": "{{callId}}",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "from_device_id",
+                  "value": "postman-webrtc-appro",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "type",
+                  "value": "offer",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "to_user_id",
+                  "value": "{{userIdMedecin}}",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "payload[sdp]",
+                  "value": "v=0\\r\\n...",
+                  "type": "text",
+                  "enabled": true
                 }
-              }
+              ]
             }
           },
           "event": [
@@ -3264,10 +3475,6 @@
             "header": [
               {
                 "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
                 "value": "application/json"
               }
             ],
@@ -3295,13 +3502,39 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"call_id\": \"{{callId}}\",\n  \"from_device_id\": \"postman-webrtc-med\",\n  \"type\": \"answer\",\n  \"to_user_id\": \"{{userIdApprovisionne}}\",\n  \"payload\": {\n    \"sdp\": \"v=0\\\\r\\\\n...\"\n  }\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "call_id",
+                  "value": "{{callId}}",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "from_device_id",
+                  "value": "postman-webrtc-med",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "type",
+                  "value": "answer",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "to_user_id",
+                  "value": "{{userIdApprovisionne}}",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "payload[sdp]",
+                  "value": "v=0\\r\\n...",
+                  "type": "text",
+                  "enabled": true
                 }
-              }
+              ]
             }
           },
           "event": [
@@ -3323,10 +3556,6 @@
             "header": [
               {
                 "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
                 "value": "application/json"
               }
             ],
@@ -3354,13 +3583,21 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"from_device_id\": \"postman-webrtc-appro\",\n  \"type\": \"type_bidon\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "from_device_id",
+                  "value": "postman-webrtc-appro",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "type",
+                  "value": "type_bidon",
+                  "type": "text",
+                  "enabled": true
                 }
-              }
+              ]
             }
           },
           "event": [
@@ -3433,10 +3670,6 @@
               {
                 "key": "Accept",
                 "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
               }
             ],
             "url": {
@@ -3463,13 +3696,21 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"call_id\": \"{{callId}}\",\n  \"from_device_id\": \"postman-webrtc-appro\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "call_id",
+                  "value": "{{callId}}",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "from_device_id",
+                  "value": "postman-webrtc-appro",
+                  "type": "text",
+                  "enabled": true
                 }
-              }
+              ]
             }
           },
           "event": [
@@ -3536,10 +3777,6 @@
               {
                 "key": "Accept",
                 "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
               }
             ],
             "url": {
@@ -3559,13 +3796,21 @@
               "type": "noauth"
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"montant\": 2000,\n  \"phone_number\": \"22891112233\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "montant",
+                  "value": "",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "phone_number",
+                  "value": "",
+                  "type": "text",
+                  "enabled": true
                 }
-              }
+              ]
             }
           },
           "event": [
@@ -3588,10 +3833,6 @@
               {
                 "key": "Accept",
                 "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
               }
             ],
             "url": {
@@ -3611,13 +3852,15 @@
               "type": "noauth"
             },
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"destination_user_id\": 1\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "destination_user_id",
+                  "value": "1",
+                  "type": "text",
+                  "enabled": true
                 }
-              }
+              ]
             }
           },
           "event": [
@@ -3792,13 +4035,8 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "mode": "formdata",
+              "formdata": []
             }
           },
           "event": [

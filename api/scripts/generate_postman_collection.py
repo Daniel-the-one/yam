@@ -10,6 +10,7 @@ json.dump et le JSON produit est relu par Newman à chaque exécution.
 Sortie :
   api/postman/KondjiPro_API.postman_collection.json
   api/postman/KondjiPro_Local.postman_environment.json
+  api/postman/KondjiPro_Production.postman_environment.json
 """
 import json
 import pathlib
@@ -54,22 +55,45 @@ def json_body(payload):
     }
 
 
+def formdata_body(payload):
+    """Aplatit les objets imbriqués en clés bracket reconnues par Laravel."""
+    fields = []
+
+    def add(value, key=None):
+        if isinstance(value, dict):
+            for child_key, child_value in value.items():
+                child = str(child_key) if key is None else "%s[%s]" % (key, child_key)
+                add(child_value, child)
+        elif isinstance(value, list):
+            for index, child_value in enumerate(value):
+                child = str(index) if key is None else "%s[%d]" % (key, index)
+                add(child_value, child)
+        else:
+            text = "" if value is None else str(value).lower() if isinstance(value, bool) else str(value)
+            # Exemples fixes restent prêts à l'emploi ; les valeurs métier
+            # spécifiques (montant, numéro de compte) attendent la saisie.
+            if key in {"phone_number", "montant", "amount", "destinataire_wallet_id"} and "{{" not in text:
+                text = ""
+            fields.append({"key": key or "", "value": text, "type": "text", "enabled": True})
+
+    add(payload)
+    return {"mode": "formdata", "formdata": fields}
+
+
 def req(nom, methode, chemin, dossier, description, tests="", pre="", body=None,
         auth_mecanisme=AUTH, entetes=None, query=None, exemple=None):
     r = {
         "name": nom,
         "request": {
             "method": methode,
-            "header": [{"key": "Accept", "value": "application/json"}] + (
-                [{"key": "Content-Type", "value": "application/json"}] if body else []
-            ) + (entetes or []),
+            "header": [{"key": "Accept", "value": "application/json"}] + (entetes or []),
             "url": url(chemin, query),
             "description": description,
             "auth": auth_mecanisme,
         },
     }
     if body is not None:
-        r["request"]["body"] = json_body(body)
+        r["request"]["body"] = formdata_body(body)
     if pre:
         r["event"] = [{"listen": "prerequest", "script": {"type": "text/javascript", "exec": pre.split("\n")}}]
     if tests:
@@ -868,12 +892,12 @@ REQS.append(req(
 # Assemblage
 # ---------------------------------------------------------------------
 VARIABLES = [
-    ("baseUrl", "http://127.0.0.1:8081", "Laravel artisan serve. Si tu testes via `php artisan serve` sur le port 8000, change ici."),
-    ("demoPassword", "DemoPass123!", "Mot de passe commun aux comptes de `php artisan yam:seed-demo`."),
-    ("phoneApprovisionne", "+228900000003", "Patient avec 50 000 F — seul compte permettant de tester ce qui coûte de l'argent."),
-    ("phoneMedecin", "+228900000002", "Compte médecin. INCRÉABLE par l'API (register force le rôle patient)."),
-    ("phonePatient", "+228900000001", "Patient à solde 0, sert aux cas d'erreur 402 / 422."),
-    ("siteIdCinetPay", "site-de-test", "site_id CinetPay attendu. Sans clés réelles configurées, aucun webhook ne peut aboutir."),
+    ("baseUrl", "https://yam.mdkrlabs.dev", "URL de production Yam. Pour lancer les tests automatisés, active plutôt l'environnement KondjiPro Local."),
+    ("demoPassword", "", "Mot de passe du compte de test (fourni dans l'environnement local uniquement)."),
+    ("phoneApprovisionne", "", "Numéro du patient approvisionné ; vide en production, fourni dans l'environnement local de test."),
+    ("phoneMedecin", "", "Numéro du médecin ; vide en production, fourni dans l'environnement local de test."),
+    ("phonePatient", "", "Numéro du patient ; vide en production, fourni dans l'environnement local de test."),
+    ("siteIdCinetPay", "", "site_id CinetPay ; à définir selon l'environnement."),
     ("phoneFree", "", "Généré à chaque exécution de l'inscription."),
     ("phoneFree2", "", "Généré à chaque exécution du test de rôle."),
     ("phoneErr", "", "Généré à chaque exécution du test 422."),
@@ -913,9 +937,13 @@ collection = {
             "PRÉREQUIS :\n"
             "  1. php artisan migrate\n"
             "  2. php artisan yam:seed-demo   (crée un patient, un médecin, un patientApprovisionné)\n"
-            "  3. php artisan serve --host=127.0.0.1 --port=8081\n\n"
+            "  3. php artisan serve --host=127.0.0.1 --port=8081\n"
+            "  4. sélectionner l'environnement `KondjiPro Local` avant d'exécuter la suite\n\n"
             "Dans Postman : importer la collection, puis l'environnement "
             "`KondjiPro_Local.postman_environment.json`, puis « Run collection ».\n\n"
+            "Les requêtes POST utilisent Body > form-data. Les valeurs de "
+            "téléphone/montant à fournir sont laissées vides ; les valeurs "
+            "stables et variables générées restent préremplies.\n\n"
             "LIMITE CONNUE : le compte médecin ne peut PAS être créé par l'API "
             "(register force role=patient). Sans le seeder, les 6 endpoints d'appels "
             "sont intestables. Cette limite est volontairement documentée par un test."
@@ -952,16 +980,19 @@ yam_collection["info"] = {
 yam_collection_path = SORTIE.parent / "Yam-API.postman_collection.json"
 yam_collection_path.write_text(json.dumps(yam_collection, indent=2, ensure_ascii=False), encoding="utf-8")
 
-# ATTENTION : Postman/Newman donnent la PRIORITÉ aux variables d'environnement
-# sur celles de la collection. Si ce fichier définissait `tokenApprovisionne`
-# (vide), il masquerait la valeur capturée par les scripts de test et TOUTES les
-# routes protégées répondraient 401. Donc : l'environnement ne contient que
-# `baseUrl`, tout l'état de la collection vit dans les variables de collection.
+# Postman donne la priorité aux variables d'environnement. Les environnements
+# local et production définissent les identifiants de test séparément ; ils ne
+# définissent jamais les tokens, qui restent capturés dans les variables de collection.
 env = {
-    "id": str(uuid.uuid4()),
+    "id": str(uuid.uuid5(uuid.NAMESPACE_URL, "http://127.0.0.1:8081/postman-environment")),
     "name": "KondjiPro Local",
     "values": [
-        {"key": "baseUrl", "value": "http://127.0.0.1:8081", "type": "default", "enabled": True}
+        {"key": "baseUrl", "value": "http://127.0.0.1:8081", "type": "default", "enabled": True},
+        {"key": "demoPassword", "value": "DemoPass123!", "type": "default", "enabled": True},
+        {"key": "phoneApprovisionne", "value": "+228900000003", "type": "default", "enabled": True},
+        {"key": "phoneMedecin", "value": "+228900000002", "type": "default", "enabled": True},
+        {"key": "phonePatient", "value": "+228900000001", "type": "default", "enabled": True},
+        {"key": "siteIdCinetPay", "value": "site-de-test", "type": "default", "enabled": True},
     ],
     "_postman_variable_scope": "environment",
     "_postman_exported_at": "2026-09-28T00:00:00.000Z",
@@ -970,7 +1001,26 @@ env = {
 env_path = SORTIE / "KondjiPro_Local.postman_environment.json"
 env_path.write_text(json.dumps(env, indent=2, ensure_ascii=False), encoding="utf-8")
 
+production_env = {
+    "id": str(uuid.uuid5(uuid.NAMESPACE_URL, "https://yam.mdkrlabs.dev/postman-environment")),
+    "name": "KondjiPro Production",
+    "values": [
+        {"key": "baseUrl", "value": "https://yam.mdkrlabs.dev", "type": "default", "enabled": True},
+        {"key": "demoPassword", "value": "", "type": "default", "enabled": True},
+        {"key": "phoneApprovisionne", "value": "", "type": "default", "enabled": True},
+        {"key": "phoneMedecin", "value": "", "type": "default", "enabled": True},
+        {"key": "phonePatient", "value": "", "type": "default", "enabled": True},
+        {"key": "siteIdCinetPay", "value": "", "type": "default", "enabled": True},
+    ],
+    "_postman_variable_scope": "environment",
+    "_postman_exported_at": "2026-09-30T00:00:00.000Z",
+    "_postman_exported_using": "yam/scripts/generate_postman_collection.py",
+}
+production_env_path = SORTIE / "KondjiPro_Production.postman_environment.json"
+production_env_path.write_text(json.dumps(production_env, indent=2, ensure_ascii=False), encoding="utf-8")
+
 print("collection : %s (%d requêtes, %d dossiers)" % (collection_path.name, len(REQS), len(dossiers)))
 print("environnement : %s" % env_path.name)
+print("environnement : %s" % production_env_path.name)
 for nom, reqs in dossiers.items():
     print("   %-32s %2d requêtes" % (nom, len(reqs)))
