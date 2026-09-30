@@ -1,0 +1,3866 @@
+{
+  "info": {
+    "name": "KondjiPro API (Laravel)",
+    "description": "Collection de test pour toute l'API KondjiPro (api/ Laravel 13).\n\nORDRE D'EXÉCUTION : les dossiers sont numérotés et s'exécutent de haut en bas. Les requêtes s'enchaînent (un login fournit le jeton utilisé plus bas), donc ne lance pas une requête isolée au milieu.\n\nPRÉREQUIS :\n  1. php artisan migrate\n  2. php artisan yam:seed-demo   (crée un patient, un médecin, un patientApprovisionné)\n  3. php artisan serve --host=127.0.0.1 --port=8081\n\nDans Postman : importer la collection, puis l'environnement `KondjiPro_Local.postman_environment.json`, puis « Run collection ».\n\nLIMITE CONNUE : le compte médecin ne peut PAS être créé par l'API (register force role=patient). Sans le seeder, les 6 endpoints d'appels sont intestables. Cette limite est volontairement documentée par un test.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{tokenApprovisionne}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8081",
+      "type": "string",
+      "description": "Laravel artisan serve. Si tu testes via `php artisan serve` sur le port 8000, change ici."
+    },
+    {
+      "key": "demoPassword",
+      "value": "DemoPass123!",
+      "type": "string",
+      "description": "Mot de passe commun aux comptes de `php artisan yam:seed-demo`."
+    },
+    {
+      "key": "phoneApprovisionne",
+      "value": "+228900000003",
+      "type": "string",
+      "description": "Patient avec 50 000 F — seul compte permettant de tester ce qui coûte de l'argent."
+    },
+    {
+      "key": "phoneMedecin",
+      "value": "+228900000002",
+      "type": "string",
+      "description": "Compte médecin. INCRÉABLE par l'API (register force le rôle patient)."
+    },
+    {
+      "key": "phonePatient",
+      "value": "+228900000001",
+      "type": "string",
+      "description": "Patient à solde 0, sert aux cas d'erreur 402 / 422."
+    },
+    {
+      "key": "siteIdCinetPay",
+      "value": "site-de-test",
+      "type": "string",
+      "description": "site_id CinetPay attendu. Sans clés réelles configurées, aucun webhook ne peut aboutir."
+    },
+    {
+      "key": "phoneFree",
+      "value": "",
+      "type": "string",
+      "description": "Généré à chaque exécution de l'inscription."
+    },
+    {
+      "key": "phoneFree2",
+      "value": "",
+      "type": "string",
+      "description": "Généré à chaque exécution du test de rôle."
+    },
+    {
+      "key": "phoneErr",
+      "value": "",
+      "type": "string",
+      "description": "Généré à chaque exécution du test 422."
+    },
+    {
+      "key": "tokenApprovisionne",
+      "value": "",
+      "type": "string",
+      "description": "Rempli automatiquement par le 1er login."
+    },
+    {
+      "key": "tokenMedecin",
+      "value": "",
+      "type": "string",
+      "description": "Rempli automatiquement."
+    },
+    {
+      "key": "tokenPatient",
+      "value": "",
+      "type": "string",
+      "description": "Rempli automatiquement."
+    },
+    {
+      "key": "tokenJetable",
+      "value": "",
+      "type": "string",
+      "description": "Rempli automatiquement par register, consommé par logout."
+    },
+    {
+      "key": "userIdApprovisionne",
+      "value": "",
+      "type": "string",
+      "description": "Rempli automatiquement."
+    },
+    {
+      "key": "userIdMedecin",
+      "value": "",
+      "type": "string",
+      "description": "Rempli automatiquement."
+    },
+    {
+      "key": "userIdPatient",
+      "value": "",
+      "type": "string",
+      "description": "Rempli automatiquement."
+    },
+    {
+      "key": "userIdJetable",
+      "value": "",
+      "type": "string",
+      "description": "Rempli automatiquement."
+    },
+    {
+      "key": "walletApprovisionne",
+      "value": "",
+      "type": "string",
+      "description": "Rempli par GET /wallet."
+    },
+    {
+      "key": "walletPatient",
+      "value": "",
+      "type": "string",
+      "description": "Rempli par GET /wallet (patient)."
+    },
+    {
+      "key": "rechargeReference",
+      "value": "",
+      "type": "string",
+      "description": "Rempli par POST /wallet/recharge, utilisé par les tests de webhook."
+    },
+    {
+      "key": "idemRecharge",
+      "value": "",
+      "type": "string",
+      "description": "Généré à chaque recharge."
+    },
+    {
+      "key": "idemTransfert",
+      "value": "",
+      "type": "string",
+      "description": "Généré à chaque transfert."
+    },
+    {
+      "key": "appelId",
+      "value": "",
+      "type": "string",
+      "description": "Rempli par POST /appels/init."
+    },
+    {
+      "key": "appelIdMedecin",
+      "value": "",
+      "type": "string",
+      "description": "Rempli par l'init à l'initiative du médecin."
+    },
+    {
+      "key": "soldeApresAppel",
+      "value": "",
+      "type": "string",
+      "description": "Rempli après le débit d'appel, pour prouver l'absence de débit ensuite."
+    },
+    {
+      "key": "callId",
+      "value": "",
+      "type": "string",
+      "description": "Rempli par POST /call/ring."
+    },
+    {
+      "key": "deviceIdTeste",
+      "value": "",
+      "type": "string",
+      "description": "Rempli par POST /devices/register, consommé par DELETE."
+    }
+  ],
+  "item": [
+    {
+      "name": "00 — Prérequis",
+      "item": [
+        {
+          "name": "Health check (Laravel)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/up",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "up"
+              ]
+            },
+            "description": "Sonde Laravel. 200 = l'application répond. À lancer EN PREMIER : si elle échoue, rien d'autre ne marchera.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 — le serveur répond', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /config (public)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/config",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "config"
+              ]
+            },
+            "description": "Config publique servie à l'app mobile (versions, seuils, feature flags).",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('corps JSON non vide', () => {",
+                  "    pm.expect(pm.response.json()).to.be.an('object');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /debug/logs (public si APP_DEBUG)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/debug/logs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "debug",
+                "logs"
+              ]
+            },
+            "description": "Route de diagnostic enregistrée UNIQUEMENT si APP_DEBUG=true.\\n\\nEn local (APP_DEBUG=true) → 200. En production → 404, la route n'existe pas.\\nLe test accepte les deux : c'est le comportement attendu qui compte.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const code = pm.response.code;",
+                  "pm.test('200 en local OU 404 si APP_DEBUG=false', () => {",
+                  "    pm.expect([200, 404]).to.include(code);",
+                  "});",
+                  "if (code === 200) {",
+                  "    pm.test('les logs sont un objet/tableau', () => pm.expect(pm.response.json()).to.exist);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 — Authentification",
+      "item": [
+        {
+          "name": "POST /auth/login — patient approvisionné",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Compte créé par `php artisan yam:seed-demo`. C'est celui qui a 50 000 F : c'est le seul moyen de tester les endpoints qui débloquent de l'argent.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenApprovisionne}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone_number\": \"{{phoneApprovisionne}}\",\n  \"password\": \"{{demoPassword}}\",\n  \"device_id\": \"postman-appro\",\n  \"platform\": \"web\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('jeton renvoyé', () => pm.expect(j.data.token).to.be.a('string').and.not.empty);",
+                  "pm.test('rôle = patient', () => pm.expect(j.data.user.role).to.eql('patient'));",
+                  "pm.collectionVariables.set('tokenApprovisionne', j.data.token);",
+                  "pm.collectionVariables.set('userIdApprovisionne', j.data.user.id);",
+                  "pm.test('le payload de login ne contient pas le solde (il vient de GET /wallet)', () => {",
+                  "    pm.expect(j.data.user).to.not.have.property('solde');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /auth/login — médecin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "COMPTE MÉDECIN. Il est IMPOSSIBLE de le créer par l'API : `register` force `role=patient`. Il vient du seeder — voir la requête « Vérifier que register force le rôle patient » qui verrouille ce comportement.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenApprovisionne}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone_number\": \"{{phoneMedecin}}\",\n  \"password\": \"{{demoPassword}}\",\n  \"device_id\": \"postman-med\",\n  \"platform\": \"web\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set('tokenMedecin', j.data.token);",
+                  "pm.collectionVariables.set('userIdMedecin', j.data.user.id);",
+                  "pm.test('rôle = medecin', () => pm.expect(j.data.user.role).to.eql('medecin'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /auth/login — patient (solde 0)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Deuxième patient, solde 0. Sert à vérifier le refus 402 / solde insuffisant.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenApprovisionne}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone_number\": \"{{phonePatient}}\",\n  \"password\": \"{{demoPassword}}\",\n  \"device_id\": \"postman-pat\",\n  \"platform\": \"web\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set('tokenPatient', j.data.token);",
+                  "pm.collectionVariables.set('userIdPatient', j.data.user.id);",
+                  "pm.test('le rôle est bien patient', () => pm.expect(j.data.user.role).to.eql('patient'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /auth/register (numéro aléatoire)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Inscription classique. Le numéro est généré à chaque exécution pour ne jamais entrer en collision avec un compte existant.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenApprovisionne}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Test\",\n  \"phone_number\": \"{{phoneFree}}\",\n  \"password\": \"{{demoPassword}}\",\n  \"device_id\": \"postman-register-{{$randomInt}}\",\n  \"platform\": \"web\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('phoneFree', '+2289' + Math.floor(1000000 + Math.random() * 9000000));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201', () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set('tokenJetable', j.data.token);",
+                  "pm.collectionVariables.set('userIdJetable', j.data.user.id);",
+                  "pm.test('mot de passe JAMAIS renvoyé en clair', () => {",
+                  "    pm.expect(JSON.stringify(j)).to.not.include('{{demoPassword}}');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Vérifier que register force le rôle patient",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "CONTRAINTE IMPORTANTE, documentée par un test.\\n\\n`register` force `role = 'patient'` et IGNORE tout rôle envoyé par le client. Conséquence : il n'existe AUCUN moyen de créer un médecin par l'API, alors que 6 endpoints d'appels exigent un médecin. Il faut le seeder.\\n\\nCe test échouera si quelqu'un ouvre un jour l'inscription aux médecins : ce sera une bonne nouvelle, et il faudra mettre à jour cette documentation.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenApprovisionne}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Role\",\n  \"phone_number\": \"{{phoneFree2}}\",\n  \"password\": \"{{demoPassword}}\",\n  \"role\": \"medecin\",\n  \"device_id\": \"postman-role-{{$randomInt}}\",\n  \"platform\": \"web\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('phoneFree2', '+2289' + Math.floor(1000000 + Math.random() * 9000000));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201', () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json();",
+                  "pm.test('le rôle est forcé à patient, le client ne peut pas créer de médecin', () => {",
+                  "    pm.expect(j.data.user.role).to.eql('patient');",
+                  "});",
+                  "pm.test('le rôle demandé (medecin) a bien été ignoré', () => {",
+                  "    pm.expect(j.data.user.role).to.not.eql('medecin');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /auth/register — mot de passe trop court (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Cas d'erreur : `password` exige au moins 8 caractères (422).",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Court\",\n  \"phone_number\": \"{{phoneErr}}\",\n  \"password\": \"court\",\n  \"device_id\": \"d-err\",\n  \"platform\": \"web\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('phoneErr', '+2289' + Math.floor(1000000 + Math.random() * 9000000));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('422', () => pm.response.to.have.status(422));",
+                  "pm.test('le champ fautif est nommé', () => pm.expect(pm.response.json().errors).to.have.property('password'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /auth/login — mauvais mot de passe (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Cas d'erreur : identifiants invalides.\n\nL'API renvoie 422 (ValidationException sur phone_number) et non 401 : le contrat est en place depuis le début, on documente le comportement réel.\n\nLe message est volontairement le même que le numéro existe ou non (\"Identifiants incorrects.\") : impossible d'énumérer les comptes.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone_number\": \"{{phoneApprovisionne}}\",\n  \"password\": \"MauvaisMotDePasse123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('422 (et non 401 : voir la description)', () => pm.response.to.have.status(422));",
+                  "pm.test('aucun jeton renvoyé', () => {",
+                  "    pm.expect(JSON.stringify(pm.response.json())).to.not.include('plainTextToken');",
+                  "});",
+                  "pm.test('le message ne distingue pas compte existant / mot de passe faux', () => {",
+                  "    pm.expect(pm.response.json().errors.phone_number[0]).to.eql('Identifiants incorrects.');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 — Utilisateur connecté",
+      "item": [
+        {
+          "name": "GET /users/me",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me"
+              ]
+            },
+            "description": "Profil de l'utilisateur authentifié. Sert aussi à vérifier que le jeton est encore valide.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenApprovisionne}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('le user_id correspond au token utilisé', () => {",
+                  "    pm.expect(String(j.data.id)).to.eql(pm.collectionVariables.get('userIdApprovisionne'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 — Recherche & contacts",
+      "item": [
+        {
+          "name": "GET /users/search?q=",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/search?q=Demo&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "Demo"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Recherche d'utilisateurs. `q` fait au minimum 2 caractères (422 en dessous).",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenApprovisionne}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('les résultats correspondent à la recherche', () => {",
+                  "    const data = pm.response.json().data;",
+                  "    pm.expect(data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /users/search?q=x (trop court, 422)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/search?q=x",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "x"
+                }
+              ]
+            },
+            "description": "Cas d'erreur : `q` minimal = 2 caractères.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenApprovisionne}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('422', () => pm.response.to.have.status(422));",
+                  "pm.test('erreur sur q', () => pm.expect(pm.response.json().errors).to.have.property('q'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /contacts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/contacts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "contacts"
+              ]
+            },
+            "description": "Liste des contacts de l'utilisateur connecté.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenApprovisionne}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('liste JSON', () => pm.expect(pm.response.json()).to.be.an('object'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 — Appareils",
+      "item": [
+        {
+          "name": "GET /devices",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/devices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "devices"
+              ]
+            },
+            "description": "Appareils enregistrés pour l'utilisateur courant.\n\nC'est ici qu'on récupère le device_id qui alimente la suppression : l'enregistrement est un feu-et-forgat qui ne renvoie que { ok: true }.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenApprovisionne}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('la liste des appareils est un tableau', () => pm.expect(j.devices).to.be.an('array'));",
+                  "pm.test('au moins un appareil enregistré', () => pm.expect(j.devices.length).to.be.above(0));",
+                  "pm.collectionVariables.set('deviceIdTeste', j.devices[0].device_id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /devices/register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/devices/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "devices",
+                "register"
+              ]
+            },
+            "description": "Enregistre un appareil (notifications push, WebRTC).\n\nContrat réel : c'est un feu-et-forgat, la réponse vaut simplement { ok: true }. Le device_id se récupère ensuite via GET /devices, c'est ce qui alimente la suppression.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenApprovisionne}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"Postman Device\",\n  \"device_id\": \"postman-dev-{{$randomInt}}\",\n  \"platform\": \"web\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('enregistrement acquitté (feu-et-forgat)', () => {",
+                  "    pm.expect(pm.response.json().ok).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE /devices/{deviceId}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/devices/{{deviceIdTeste}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "devices",
+                "{{deviceIdTeste}}"
+              ]
+            },
+            "description": "Supprime l'appareil récupéré par GET /devices.\n\nSi le device_id est vide, l'URL devient /api/v1/devices/ et l'API répond 405 : symptôme d'un GET /devices manquant, pas d'un vrai défaut.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenApprovisionne}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05 — Wallet",
+      "item": [
+        {
+          "name": "GET /wallet (crée le wallet)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/wallet",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "wallet"
+              ]
+            },
+            "description": "Consulte le wallet. Le wallet est CRÉÉ à ce premier appel (wallet_id + key_wallet).\\n\\nLe format du wallet_id suit le contrat de l'API externe : TGW + aaMMjj + 6 chiffres.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenApprovisionne}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const w = pm.response.json().wallet;",
+                  "pm.test('wallet_id conforme au contrat externe (TGW+aammjj+6 chiffres)', () => {",
+                  "    pm.expect(w.wallet_id).to.match(/^TGW\\d{12}$/);",
+                  "});",
+                  "pm.test('key_wallet fait 32 caractères', () => pm.expect(w.key_wallet).to.have.length(32));",
+                  "pm.test('solde = 50 000 (champ numerique solde_raw)', () => pm.expect(Number(w.solde_raw)).to.eql(50000));",
+                  "pm.test('solde expose aussi en version formatee, pour l’affichage', () => pm.expect(w.solde).to.be.a('string'));",
+                  "pm.collectionVariables.set('walletApprovisionne', w.wallet_id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /wallet (patient, crée son wallet)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/wallet",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "wallet"
+              ]
+            },
+            "description": "Crée le wallet du patient à solde 0 : il devient une destination de transfert valide, ce qu'il n'était pas avant cet appel.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenPatient}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const w = pm.response.json().wallet;",
+                  "pm.collectionVariables.set('walletPatient', w.wallet_id);",
+                  "pm.test('solde = 0', () => pm.expect(Number(w.solde_raw)).to.eql(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /wallet/recharge (avec Idempotency-Key)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idemRecharge}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/wallet/recharge",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "wallet",
+                "recharge"
+              ]
+            },
+            "description": "Lance une recharge.\\n\\nL'en-tête `Idempotency-Key` est facultatif côté API mais FORTEMENT recommandé : sans lui, un double appui ou un retry réseau sur 4G togolaise recharge deux fois.\\n\\nSans clés CinetPay configurées, la réponse est en mode `simulation` : `payment_url` est VIDE. C'est voulu — l'ancienne version renvoyait une URL fictive vers laquelle le client redirigeait le payeur.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenApprovisionne}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"montant\": 2000,\n  \"phone_number\": \"22891112233\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('idemRecharge', 'pm-recharge-' + Date.now() + '-' + Math.floor(Math.random() * 1000));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201', () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json();",
+                  "const info = j.information, pay = info.payment;",
+                  "pm.test('une référence est renvoyée', () => pm.expect(info.reference).to.be.a('string').and.not.empty);",
+                  "pm.collectionVariables.set('rechargeReference', info.reference);",
+                  "pm.test('la recharge NE crédite AUCUN solde avant confirmation', () => {",
+                  "    pm.expect(info.status_show).to.eql('En cours');",
+                  "});",
+                  "// Montants formates (\"200 Fcfa\", \"+2 000 Fcfa\") : on ne compare qu'apres avoir",
+                  "// retire tout ce qui n'est pas un chiffre.",
+                  "const chiffres = (v) => Number(String(v).replace(/[^0-9]/g, ''));",
+                  "pm.test('montant = 2 000', () => pm.expect(chiffres(info.amount)).to.eql(2000));",
+                  "pm.test('frais = 10 % du montant', () => pm.expect(chiffres(info.fees)).to.eql(200));",
+                  "pm.test('total = montant + frais', () => pm.expect(chiffres(info.total_amount)).to.eql(2200));",
+                  "pm.test('mode simulation = pas de payment_url inventée', () => {",
+                  "    pm.expect(pay.mode).to.eql('simulation');",
+                  "    pm.expect(pay.payment_url).to.eql('');",
+                  "    pm.expect(pay.must_be_redirected).to.eql(false);",
+                  "});",
+                  "// Cette reponse ne porte pas de solde : c'est un objet `information`. Le",
+                  "// solde se verifie en relisant GET /wallet juste apres (requete suivante).",
+                  "pm.test('aucun solde crédité avant confirmation CinetPay', () => {",
+                  "    pm.expect(info.new_balance).to.eql('-');",
+                  "});",
+                  "pm.test('la recharge est en attente, pas validée', () => {",
+                  "    pm.expect(info.status).to.not.eql(2);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /wallet/recharge — rejeu de la MÊME clé",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idemRecharge}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/wallet/recharge",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "wallet",
+                "recharge"
+              ]
+            },
+            "description": "Rejoue EXACTEMENT la recharge précédente avec la même clé.\\n\\nAttendu : aucune nouvelle recharge, la réponse d’origine est rejouée à l'identique et l'en-tête `Idempotent-Replay: true` le signale.\\n\\nC'est le test de non-régression du correctif e78b805 : avant, ce rejeu créait une deuxième recharge.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenApprovisionne}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"montant\": 2000,\n  \"phone_number\": \"22891112233\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 — le statut d’origine est rejoué', () => pm.response.to.have.status(201));",
+                  "pm.test('en-tête Idempotent-Replay: true', () => {",
+                  "    pm.expect(pm.response.headers.get('Idempotent-Replay')).to.eql('true');",
+                  "});",
+                  "pm.test('la MÊME référence est renvoyée (aucune recharge créée)', () => {",
+                  "    pm.expect(pm.response.json().information.reference)",
+                  "      .to.eql(pm.collectionVariables.get('rechargeReference'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /wallet/recharge — clé invalide (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "court",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/wallet/recharge",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "wallet",
+                "recharge"
+              ]
+            },
+            "description": "Une clé trop courte (< 8 caractères) est refusée 409 plutôt que tronquée.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenApprovisionne}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"montant\": 2000,\n  \"phone_number\": \"22891112233\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409', () => pm.response.to.have.status(409));",
+                  "pm.test('code erreur explicite', () => pm.expect(pm.response.json().error.code).to.eql('idempotency_conflict'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /wallet/transactions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/wallet/transactions?page=1&limit=5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "wallet",
+                "transactions"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Historique paginé, groupé par jour. `limit` max 100.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenApprovisionne}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('la pagination est présente', () => pm.expect(j.pagination).to.have.property('total'));",
+                  "pm.test('les transactions sont groupées par date', () => pm.expect(j.transactions).to.be.an('object'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /wallet/transfert",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idemTransfert}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/wallet/transfert",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "wallet",
+                "transfert"
+              ]
+            },
+            "description": "Transfert interne. L'expéditeur est débité du montant + 10 % de frais, le destinataire est crédité du montant NOMINAL (les frais restent chez la plateforme).\\n\\nDeux lignes sont écrites : débit + crédit.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenApprovisionne}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"montant\": 1000,\n  \"destinataire_wallet_id\": \"{{walletPatient}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('idemTransfert', 'pm-transfert-' + Date.now() + '-' + Math.floor(Math.random() * 1000));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201', () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json();",
+                  "pm.test('réponse de succès', () => pm.expect(j.message).to.include('succ'));",
+                  "pm.test('frais = 10 %', () => {",
+                  "    pm.expect(Number(String(j.information.fees).replace(/[^0-9]/g, ''))).to.eql(100);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /wallet (après transfert) — conservation de l'argent",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/wallet",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "wallet"
+              ]
+            },
+            "description": "Vérifie que l'argent n'a pas été créé ni détruit : 50 000 - 1 000 - 100 de frais = 48 900 chez l'expéditeur.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenApprovisionne}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('solde = 48 900 (50 000 - 1 000 - 100 de frais)', () => {",
+                  "    pm.expect(Number(pm.response.json().wallet.solde_raw)).to.eql(48900);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /wallet du destinataire — crédit exact",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/wallet",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "wallet"
+              ]
+            },
+            "description": "Le destinataire a reçu 1 000 F exactement, pas 1 100.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenPatient}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('solde = 1 000 (montant nominal, frais exclus)', () => {",
+                  "    pm.expect(Number(pm.response.json().wallet.solde_raw)).to.eql(1000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /wallet/transfert — solde insuffisant (402)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "pm-402-{{$randomInt}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/wallet/transfert",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "wallet",
+                "transfert"
+              ]
+            },
+            "description": "Le patient à 1 000 F ne peut pas transférer 999 999 F. Le contrôle du solde est fait SOUS VERROU, donc atomique avec le débit.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenPatient}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"montant\": 999999,\n  \"destinataire_wallet_id\": \"{{walletApprovisionne}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('402 Payment Required', () => pm.response.to.have.status(402));",
+                  "pm.test('le montant est nommé dans l’erreur', () => {",
+                  "    pm.expect(pm.response.json().errors).to.have.property('montant');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /wallet/transfert — même clé, montant différent (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idemTransfert}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/wallet/transfert",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "wallet",
+                "transfert"
+              ]
+            },
+            "description": "Réutiliser une clé d'idempotence avec un corps différent est un 409 : on refuse de mélanger deux intentions sous la même clé. Aucun argent ne bouge.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenApprovisionne}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"montant\": 5000,\n  \"destinataire_wallet_id\": \"{{walletPatient}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409 Conflict', () => pm.response.to.have.status(409));",
+                  "pm.test('code idempotency_conflict', () => {",
+                  "    pm.expect(pm.response.json().error.code).to.eql('idempotency_conflict');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /wallet/transfert — sans destinataire (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/wallet/transfert",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "wallet",
+                "transfert"
+              ]
+            },
+            "description": "Un transfert doit viser soit un wallet_id, soit un numéro. Les deux absents → 422.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenApprovisionne}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"montant\": 1000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('422', () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "06 — Webhook CinetPay",
+      "item": [
+        {
+          "name": "POST /wallet/recharge/notify — sans transaction_id",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/wallet/recharge/notify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "wallet",
+                "recharge",
+                "notify"
+              ]
+            },
+            "description": "WEBHOOK : AUCUN jeton, l'appel vient de CinetPay.\\n\\nPremier test de la règle fail-closed : sans `transaction_id`, AUCUN crédit, et la transaction n'est même pas marquée en échec.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": 200,\n  \"amount\": 2200,\n  \"site_id\": \"{{siteIdCinetPay}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 (CinetPay attend 200, sinon il réessaiera)', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('aucun crédit', () => pm.expect(j.credit).to.eql(false));",
+                  "pm.test('raison explicite', () => pm.expect(j.raison).to.eql('transaction_id_manquant'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /wallet/recharge/notify — transaction inconnue",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/wallet/recharge/notify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "wallet",
+                "recharge",
+                "notify"
+              ]
+            },
+            "description": "Un `transaction_id` qui n'existe pas en base ne crédite rien.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transaction_id\": \"TXN_reference_inexistante_0001\",\n  \"code\": 200,\n  \"amount\": 2200\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('aucun crédit', () => pm.expect(j.credit).to.eql(false));",
+                  "pm.test('recharge introuvable', () => pm.expect(j.raison).to.eql('recharge_introuvable'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /wallet/recharge/notify — montant forgé",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/wallet/recharge/notify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "wallet",
+                "recharge",
+                "notify"
+              ]
+            },
+            "description": "ATTAQUE : on reprend une vraie référence de recharge et on annonce un montant différent. Le montant CRÉDITÉ est celui de la base, jamais celui de la notification, donc la recharge est refusée.\\n\\nSi ce test passe sans que le contrôle existe, c'est qu'un attaquant peut forger n'importe quel crédit : c'est le test de non-régression le plus important du fichier.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transaction_id\": \"{{rechargeReference}}\",\n  \"code\": 200,\n  \"amount\": 1,\n  \"site_id\": \"{{siteIdCinetPay}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('le montant forgé est REJETÉ — aucun crédit', () => {",
+                  "    pm.expect(j.credit).to.eql(false);",
+                  "    pm.expect(j.raison).to.eql('montant_invalide');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /wallet/recharge/notify — sans code ni status",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/wallet/recharge/notify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "wallet",
+                "recharge",
+                "notify"
+              ]
+            },
+            "description": "Ni `code: 200` ni `status: SUCCESS` → fail-closed, aucun crédit. Le webhook ne devine jamais qu'un paiement a réussi.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transaction_id\": \"{{rechargeReference}}\",\n  \"amount\": 2200,\n  \"site_id\": \"{{siteIdCinetPay}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('aucun crédit sans indicateur de succès', () => {",
+                  "    pm.expect(pm.response.json().credit).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /wallet/recharge/notify — site_id inconnu",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/wallet/recharge/notify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "wallet",
+                "recharge",
+                "notify"
+              ]
+            },
+            "description": "Un `site_id` qui ne correspond pas à la configuration est rejeté (si l'intégration est configurée ; en mode simulation la recharge est de toute façon refusée).",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transaction_id\": \"{{rechargeReference}}\",\n  \"code\": 200,\n  \"amount\": 2200,\n  \"site_id\": \"site-dun-attaquant\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('aucun crédit', () => pm.expect(pm.response.json().credit).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "07 — Appels payants",
+      "item": [
+        {
+          "name": "POST /appels/init (patient → médecin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/appels/init",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "appels",
+                "init"
+              ]
+            },
+            "description": "Le patientApprovisionné initie un appel vers le médecin. C'est le seul sens qui facture le patient (100 F/minute). Nécessite un solde ≥ le tarif.\\n\\nUn seul appel actif à la fois entre deux participants : un deuxième init en cours renvoie 409.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenApprovisionne}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"destination_user_id\": \"{{userIdMedecin}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201', () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json();",
+                  "pm.test('un appel_id est renvoyé', () => pm.expect(j.data.appel_id).to.be.a('number'));",
+                  "pm.test('statut = initie', () => pm.expect(j.data.status).to.eql('initie'));",
+                  "pm.collectionVariables.set('appelId', j.data.appel_id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /appels/init — déjà en cours (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/appels/init",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "appels",
+                "init"
+              ]
+            },
+            "description": "Anti-spam : deux appels ne peuvent pas coexister entre les mêmes participants.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenApprovisionne}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"destination_user_id\": \"{{userIdMedecin}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409', () => pm.response.to.have.status(409));",
+                  "pm.test('code appel_en_cours', () => pm.expect(pm.response.json().error.code).to.eql('appel_en_cours'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /appels/init — solde insuffisant (402)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/appels/init",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "appels",
+                "init"
+              ]
+            },
+            "description": "Un appel facturé est refusé quand le solde est <= 0, ce qui répond 402 Payment Required (et non 422).\n\nLe test utilise volontairement le patient à solde 0 : avec 50 000 F on ne peut pas déclencher cette erreur, c'est le garde-fou qui compte, pas le montant demandé.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenPatient}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"destination_user_id\": \"{{userIdMedecin}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('402 Payment Required', () => pm.response.to.have.status(402));",
+                  "pm.test('code solde_insuffisant', () => {",
+                  "    pm.expect(pm.response.json().error.code).to.eql('solde_insuffisant');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /appels/init — mauvais rôle de destination (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/appels/init",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "appels",
+                "init"
+              ]
+            },
+            "description": "Un patient doit appeler un MÉDECIN, pas un autre patient.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenApprovisionne}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"destination_user_id\": \"{{userIdPatient}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('422', () => pm.response.to.have.status(422));",
+                  "pm.test('code destinataire_invalide', () => {",
+                  "    pm.expect(pm.response.json().error.code).to.eql('destinataire_invalide');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /appels/{id}/lancer (initiateur)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/appels/{{appelId}}/lancer",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "appels",
+                "{{appelId}}",
+                "lancer"
+              ]
+            },
+            "description": "L'INITIATEUR déclenche la sonnerie. Seul l'initiateur a le droit ; le destinataire qui tente reçoit un 403.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenApprovisionne}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('statut = sonne', () => pm.expect(pm.response.json().data.status).to.eql('sonne'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /appels/{id}/decrocher (médecin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/appels/{{appelId}}/decrocher",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "appels",
+                "{{appelId}}",
+                "decrocher"
+              ]
+            },
+            "description": "Le MÉDECIN décroche. C'est le seul qui en a le droit.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenMedecin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('statut = decroche', () => pm.expect(pm.response.json().data.status).to.eql('decroche'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /appels/{id}/decrocher — par le patient (403)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/appels/{{appelId}}/decrocher",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "appels",
+                "{{appelId}}",
+                "decrocher"
+              ]
+            },
+            "description": "Le patient ne peut pas décrocher son propre appel : 403. L'appel est déjà décroché, mais le contrôle de rôle passe AVANT celui d'état.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenApprovisionne}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('403', () => pm.response.to.have.status(403));",
+                  "pm.test('code forbidden', () => pm.expect(pm.response.json().error.code).to.eql('forbidden'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /appels/{id}/heartbeat",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/appels/{{appelId}}/heartbeat",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "appels",
+                "{{appelId}}",
+                "heartbeat"
+              ]
+            },
+            "description": "Battement de cœur pendant un appel décroché. C'est ce qui alimente la facturation au fil de l'eau (et ce qui évite de facturer une page laissée ouverte).",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenMedecin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /appels/{id}/terminer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/appels/{{appelId}}/terminer",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "appels",
+                "{{appelId}}",
+                "terminer"
+              ]
+            },
+            "description": "Raccrochage. Le règlement FINAL est calculé ici sur le delta exact entre décroché et raccroché (le dernier heartbeat peut avoir jusqu'à 10 s de retard).\\n\\nC'est la requête qui débite le patient.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenMedecin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"raison\": \"raccroche_manuel\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('statut = termine', () => pm.expect(j.data.status).to.eql('termine'));",
+                  "// La duree n'est PAS dans cette reponse : terminer renvoie uniquement",
+                  "// { appel_id, status }. Elle est exposee par GET /appels/{id}, et reste nulle",
+                  "// si l'appel n'a jamais sonne. L'asserter ici serait un faux positif.",
+                  "pm.test('aucun secret dans la reponse', () => {",
+                  "    pm.expect(JSON.stringify(j)).to.not.include('key_wallet');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /appels/{id}",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/appels/{{appelId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "appels",
+                "{{appelId}}"
+              ]
+            },
+            "description": "Détail de l'appel + facturation (durée, solde consommé, dates).",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenApprovisionne}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json().data;",
+                  "pm.test('la durée est renseignée', () => pm.expect(d.duree_secondes).to.be.a('number'));",
+                  "pm.test('le tarif est 100 F/minute', () => pm.expect(Number(d.tarif_par_minute)).to.eql(100));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /wallet — le patient a été débité",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/wallet",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "wallet"
+              ]
+            },
+            "description": "Le débit de l'appel apparaît sur le wallet. À comparer avec le solde relevé avant l'appel (48 900).",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenApprovisionne}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const solde = Number(pm.response.json().wallet.solde_raw);",
+                  "pm.test('le solde a diminué (appel facturé)', () => pm.expect(solde).to.be.below(48900));",
+                  "pm.collectionVariables.set('soldeApresAppel', solde);",
+                  "pm.test('le débit reste positif (le patient n’a pas été à découvert)', () => {",
+                  "    pm.expect(solde).to.be.at.least(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /appels/init (médecin → patient, relation requise)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/appels/init",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "appels",
+                "init"
+              ]
+            },
+            "description": "Sens inverse. Un MÉDECIN ne peut appeler qu'un patient avec qui il a DÉJÀ eu un appel (décroché ou terminé) — c'est le test de la relation.\\n\\nL'appel précédent a créé cette relation, donc cette requête doit passer. Le patient n'est PAS facturé dans ce sens.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenMedecin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"destination_user_id\": \"{{userIdApprovisionne}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201', () => pm.response.to.have.status(201));",
+                  "pm.test('initie_par = medecin', () => {",
+                  "    pm.expect(pm.response.json().data.status).to.eql('initie');",
+                  "});",
+                  "pm.collectionVariables.set('appelIdMedecin', pm.response.json().data.appel_id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /appels/{id}/lancer + terminer (médecin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/appels/{{appelIdMedecin}}/lancer",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "appels",
+                "{{appelIdMedecin}}",
+                "lancer"
+              ]
+            },
+            "description": "L'appel du médecin n'est pas décroché : il se termine en `non_decroche`, et le patient ne doit RIEN payer.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenMedecin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /appels/{id}/terminer (non décroché)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/appels/{{appelIdMedecin}}/terminer",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "appels",
+                "{{appelIdMedecin}}",
+                "terminer"
+              ]
+            },
+            "description": "Fin d'un appel jamais décroché → `raison_fin = non_decroche`.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenMedecin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"raison\": \"non_decroche\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "// `terminer` ne renvoie que { appel_id, status } : la raison de fin se lit",
+                  "// sur GET /appels/{id}. L'asserter ici serait un faux positif.",
+                  "pm.test('un appel_id est renvoyé', () => {",
+                  "    pm.expect(pm.response.json().data.appel_id).to.be.a('number');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /wallet — le patient n'a RIEN payé",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/wallet",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "wallet"
+              ]
+            },
+            "description": "Preuve qu'un appel à l'initiative du médecin ne facture pas le patient : le solde est exactement celui laissé par l'appel précédent.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenApprovisionne}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const solde = Number(pm.response.json().wallet.solde_raw);",
+                  "pm.test('solde inchangé : un appel du médecin ne coûte rien au patient', () => {",
+                  "    pm.expect(solde).to.eql(Number(pm.collectionVariables.get('soldeApresAppel')));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /appels/999999 (404)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/appels/999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "appels",
+                "999999"
+              ]
+            },
+            "description": "Appel inexistant → 404. Vérifie que le model binding ne devine rien.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenApprovisionne}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "08 — Signalisation WebRTC",
+      "item": [
+        {
+          "name": "POST /call/ring",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/call/ring",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "call",
+                "ring"
+              ]
+            },
+            "description": "Sonnerie temps réel. `from_device_id` est obligatoire ; la cible peut être un user_id ou un numéro de téléphone.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenApprovisionne}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to_user_id\": \"{{userIdMedecin}}\",\n  \"from_device_id\": \"postman-webrtc-appro\",\n  \"type\": \"audio\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('un call_id est renvoyé', () => pm.expect(j.data.call_id).to.be.a('string').and.not.empty);",
+                  "pm.collectionVariables.set('callId', j.data.call_id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /call/signal — type=offer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/call/signal",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "call",
+                "signal"
+              ]
+            },
+            "description": "Offre SDP WebRTC. `type` ∈ offer, answer, candidate, candidates_batch, bye. Le `payload` est transmis tel quel à l'autre partie.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenApprovisionne}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"call_id\": \"{{callId}}\",\n  \"from_device_id\": \"postman-webrtc-appro\",\n  \"type\": \"offer\",\n  \"to_user_id\": \"{{userIdMedecin}}\",\n  \"payload\": {\n    \"sdp\": \"v=0\\\\r\\\\n...\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('ok: true', () => pm.expect(pm.response.json().ok).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /call/signal — type=answer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/call/signal",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "call",
+                "signal"
+              ]
+            },
+            "description": "Réponse SDP du médecin.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenMedecin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"call_id\": \"{{callId}}\",\n  \"from_device_id\": \"postman-webrtc-med\",\n  \"type\": \"answer\",\n  \"to_user_id\": \"{{userIdApprovisionne}}\",\n  \"payload\": {\n    \"sdp\": \"v=0\\\\r\\\\n...\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /call/signal — type invalide (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/call/signal",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "call",
+                "signal"
+              ]
+            },
+            "description": "`type` hors de la liste fermée est refusé.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenApprovisionne}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from_device_id\": \"postman-webrtc-appro\",\n  \"type\": \"type_bidon\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('422', () => pm.response.to.have.status(422));",
+                  "pm.test('erreur sur type', () => pm.expect(pm.response.json().errors).to.have.property('type'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /call/{call_id}/offer (public)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/call/{{callId}}/offer?device_id=postman-webrtc-med",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "call",
+                "{{callId}}",
+                "offer"
+              ],
+              "query": [
+                {
+                  "key": "device_id",
+                  "value": "postman-webrtc-med"
+                }
+              ]
+            },
+            "description": "Récupération de l'offre WebRTC par device_id. Route PUBLIQUE (le pair qui rejoint n'a pas encore de jeton) et limitée à 30 appels/minute.\\n\\nSans offre enregistrée pour ce device_id, la réponse est un 200 avec `ok: false` — ce n'est pas une erreur HTTP.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('ok=false car aucune offre enregistrée pour ce device_id', () => {",
+                  "    pm.expect(pm.response.json().ok).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /call/cancel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/call/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "call",
+                "cancel"
+              ]
+            },
+            "description": "Annulation d'une sonnerie en cours.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenApprovisionne}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"call_id\": \"{{callId}}\",\n  \"from_device_id\": \"postman-webrtc-appro\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('ok: true', () => pm.expect(pm.response.json().data.ok).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "09 — Sécurité",
+      "item": [
+        {
+          "name": "GET /wallet sans jeton (401)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/wallet",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "wallet"
+              ]
+            },
+            "description": "Une route protégée sans jeton doit répondre 401, PAS une redirection vers une route « login » inexistante (l'API est pure, pas un site web).",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /wallet/recharge sans jeton (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/wallet/recharge",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "wallet",
+                "recharge"
+              ]
+            },
+            "description": "Créer une recharge exige un jeton : l'argent ne se recharge pas anonymement.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"montant\": 2000,\n  \"phone_number\": \"22891112233\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /appels/init sans jeton (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/appels/init",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "appels",
+                "init"
+              ]
+            },
+            "description": "Initier un appel facturé exige un jeton.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"destination_user_id\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Jeton falsifié (401)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/wallet",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "wallet"
+              ]
+            },
+            "description": "Un jeton au format valide mais inexistant est rejeté.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "1|eyJzdGF0dXMiOiJ4In0.fake",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Route inexistante (404)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/nexiste_pas_du_tout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "nexiste_pas_du_tout"
+              ]
+            },
+            "description": "Une route inconnue renvoie 404, pas 500.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Méthode HTTP non autorisée (405)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/wallet",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "wallet"
+              ]
+            },
+            "description": "Supprimer un wallet n'existe pas : 405 Method Not Allowed, et non une erreur 500.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('405', () => pm.response.to.have.status(405));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "99 — Déconnexion",
+      "item": [
+        {
+          "name": "POST /auth/logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Révoque le jeton du compte créé pour ce test. Utilise le compte « jetable » pour ne pas invalider les jetons des autres requêtes.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenJetable}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Jeton révoqué (401)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me"
+              ]
+            },
+            "description": "Le jeton révoqué ne fonctionne plus : la révocation est effective immédiatement.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenJetable}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 après logout', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "protocolProfileBehavior": {}
+}
