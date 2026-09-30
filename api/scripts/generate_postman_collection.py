@@ -924,6 +924,45 @@ VARIABLES = [
 dossiers = {}
 for r in REQS:
     d = r.pop("_dossier")
+    request = r["request"]
+    raw_url = request["url"]["raw"]
+    if "/api/v1/wallet" in raw_url or "/api/v1/appels" in raw_url:
+        request["url"]["raw"] = raw_url.replace("/api/v1/", "/api/demo/v1/")
+        path = request["url"]["path"]
+        if path[:2] == ["api", "v1"]:
+            request["url"]["path"] = ["api", "demo", "v1", *path[2:]]
+        request["auth"] = NOAUTH
+        request["description"] = (
+            "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. "
+            "Elle n'utilise pas le wallet réel, ne modifie aucune donnée et "
+            "ne déclenche aucun paiement ni appel. Les valeurs de formulaire "
+            "servent uniquement à illustrer le contrat ; la réponse ne dépend "
+            "pas d'elles."
+        )
+        r["name"] = "Démo statique — " + r["name"]
+        for event in r.get("event", []):
+            if event.get("listen") == "test" and request["method"] != "DELETE":
+                event["script"]["exec"] = [
+                    "pm.test('La route de démonstration répond sans transaction réelle', function() {",
+                    "    pm.expect([200, 201]).to.include(pm.response.code);",
+                    "});",
+                    "const jsonData = pm.response.json();",
+                    "pm.test('La réponse est explicitement marquée comme démo', function() {",
+                    "    pm.expect(jsonData.demo).to.eql(true);",
+                    "});",
+                    "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
+                    "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
+                    "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
+                    "}",
+                    "if (jsonData.information && jsonData.information.reference) {",
+                    "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
+                    "}",
+                    "if (jsonData.data && jsonData.data.appel_id) {",
+                    "    const nom = pm.info.requestName;",
+                    "    const variable = nom.includes('médecin → patient') ? 'appelIdMedecin' : 'appelId';",
+                    "    pm.collectionVariables.set(variable, jsonData.data.appel_id);",
+                    "}",
+                ]
     dossiers.setdefault(d, []).append(r)
 
 collection = {

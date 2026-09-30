@@ -7,6 +7,7 @@ use App\Http\Controllers\ConfigController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\DebugController;
 use App\Http\Controllers\DeviceController;
+use App\Http\Controllers\DemoApiController;
 use App\Http\Controllers\SignalController;
 use App\Http\Controllers\UserSearchController;
 use Illuminate\Support\Facades\Route;
@@ -37,6 +38,22 @@ Route::post('/v1/auth/login', [AuthController::class, 'login'])->middleware('thr
  */
 Route::post('/v1/wallet/recharge/notify', [WalletController::class, 'notifyRecharge'])
     ->middleware('throttle:120,1');
+
+// ---------------------------------------------------------
+// Réponses statiques de démonstration (aucune base ni transaction)
+// ---------------------------------------------------------
+Route::prefix('demo/v1')->name('demo.')->group(function () {
+    Route::get('/wallet', [DemoApiController::class, 'wallet']);
+    Route::get('/wallet/transactions', [DemoApiController::class, 'transactions']);
+    Route::post('/wallet/recharge', [DemoApiController::class, 'recharge']);
+    Route::post('/wallet/transfert', [DemoApiController::class, 'transfert']);
+    Route::post('/wallet/recharge/notify', [DemoApiController::class, 'webhook']);
+
+    Route::post('/appels/init', [DemoApiController::class, 'initierAppel']);
+    Route::post('/appels/{appel}/{action}', [DemoApiController::class, 'actionAppel'])
+        ->whereIn('action', ['lancer', 'decrocher', 'heartbeat', 'terminer']);
+    Route::get('/appels/{appel}', [DemoApiController::class, 'afficherAppel']);
+});
 
 // ---------------------------------------------------------
 // Routes protégées par Sanctum (accès sécurisé)
