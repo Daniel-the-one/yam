@@ -931,6 +931,27 @@ collection = {
 collection_path = SORTIE / "KondjiPro_API.postman_collection.json"
 collection_path.write_text(json.dumps(collection, indent=2, ensure_ascii=False), encoding="utf-8")
 
+# Garde le lien de partage historique de Yam pointe vers la suite complète,
+# plutôt que vers l'ancienne collection limitée aux appels WebRTC.
+yam_collection = dict(collection)
+yam_collection["info"] = {
+    **collection["info"],
+    "name": "Yam API — Suite complète",
+    "description": (
+        "Suite Postman complète de l'API Yam (64 requêtes : authentification, "
+        "utilisateurs, appareils, wallet, appels et signalisation WebRTC).\n\n"
+        "Cette suite est conçue pour un environnement local de test : elle "
+        "nécessite `php artisan migrate`, `php artisan yam:seed-demo` et "
+        "`php artisan serve --host=127.0.0.1 --port=8081`.\n\n"
+        "Ne lance pas « Run collection » sur le serveur de production : les "
+        "scénarios de test créent des comptes et effectuent des opérations de "
+        "wallet/appels. Les requêtes et leurs corps servent aussi de référence "
+        "pour consulter les endpoints."
+    ),
+}
+yam_collection_path = SORTIE.parent / "Yam-API.postman_collection.json"
+yam_collection_path.write_text(json.dumps(yam_collection, indent=2, ensure_ascii=False), encoding="utf-8")
+
 # ATTENTION : Postman/Newman donnent la PRIORITÉ aux variables d'environnement
 # sur celles de la collection. Si ce fichier définissait `tokenApprovisionne`
 # (vide), il masquerait la valeur capturée par les scripts de test et TOUTES les
