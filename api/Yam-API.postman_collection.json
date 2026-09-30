@@ -1,33 +1,112 @@
 {
 	"info": {
-		"name": "Yam API — Appel Audio (sans auth)",
-		"description": "Collection Postman pour l'API Yam (appels audio WebRTC).\n\nBase URL : http://192.168.1.80:8000\nPas d'authentification requise.\n\nOrdre de test :\n1. Get Contacts — liste les appareils enregistrés\n2. Ring — fait sonner un appareil via WebSocket\n3. Signal — envoie un message WebRTC (offer/answer/candidate)",
+		"name": "Yam API — Appel Audio (avec auth Sanctum)",
+		"description": "Collection Postman pour l'API Yam (appels audio WebRTC).\n\nURL de production : https://yam.mdkrlabs.dev\n\nCommence par « 0. Login » avec ton numéro et ton mot de passe Yam. La réponse contient data.token ; Postman le stocke automatiquement et l'envoie ensuite dans Authorization: Bearer <token>.\n\nLes clés des corps POST sont préremplies dans Body > form-data ; renseigne les valeurs avant l'envoi. Pour les signaux WebRTC, les champs imbriqués payload[sdp][type] et payload[sdp][sdp] sont interprétés par Laravel comme un objet payload.\n\nCette API n'expose pas le chemin /api/web/v1/users/connecte_useraccount : l'authentification se fait sur /api/v1/auth/login, et le profil sur /api/v1/users/me.\n\nLes endpoints d'appels agissent sur de vrais appareils : vérifie les identifiants cible avant de les envoyer.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"variable": [
 		{
 			"key": "base_url",
-			"value": "http://192.168.1.80:8000",
+			"value": "https://yam.mdkrlabs.dev",
 			"type": "string"
 		},
 		{
 			"key": "device_id",
 			"value": "test-123",
 			"type": "string"
+		},
+		{
+			"key": "tokenApprovisionne",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "tokenMedecin",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "tokenPatient",
+			"value": "",
+			"type": "string"
 		}
 	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{tokenApprovisionne}}",
+				"type": "string"
+			}
+		]
+	},
 	"item": [
+		{
+			"name": "0. Login — obtenir le token Bearer",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					}
+				],
+				"auth": {
+					"type": "noauth"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/v1/auth/login",
+					"host": ["{{base_url}}"],
+					"path": ["api", "v1", "auth", "login"]
+				},
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{"key": "phone_number", "value": "", "type": "text", "enabled": true},
+						{"key": "password", "value": "", "type": "text", "enabled": true},
+						{"key": "device_id", "value": "{{device_id}}", "type": "text", "enabled": true},
+						{"key": "platform", "value": "web", "type": "text", "enabled": true}
+					]
+				},
+				"description": "Renseigne phone_number et password avec les identifiants d'un compte Yam existant, puis envoie cette requête. Le token Sanctum de la réponse data.token est enregistré automatiquement dans la variable de collection tokenApprovisionne. N'utilise pas de compte de démonstration en production."
+			},
+			"response": [],
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Login réussi (HTTP 200)', function() {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"const jsonData = pm.response.json();",
+							"pm.test('La réponse contient un token Sanctum', function() {",
+							"    pm.expect(jsonData.data.token).to.be.a('string').and.not.empty;",
+							"});",
+							"pm.collectionVariables.set('tokenApprovisionne', jsonData.data.token);"
+						]
+					}
+				}
+			]
+		},
 		{
 			"name": "1. Get Contacts",
 			"request": {
 				"method": "GET",
-				"header": [],
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					}
+				],
 				"url": {
 					"raw": "{{base_url}}/api/v1/contacts",
 					"host": ["{{base_url}}"],
 					"path": ["api", "v1", "contacts"]
 				},
-				"description": "Liste tous les appareils enregistrés.\nPas de token requis."
+				"description": "Liste les contacts visibles par l'utilisateur connecté. Nécessite le token Bearer obtenu avec « 0. Login »."
 			},
 			"response": [],
 			"event": [
@@ -64,7 +143,7 @@
 				"method": "POST",
 				"header": [
 					{
-						"key": "Content-Type",
+						"key": "Accept",
 						"value": "application/json"
 					}
 				],
@@ -74,15 +153,16 @@
 					"path": ["api", "v1", "call", "ring"]
 				},
 				"body": {
-					"mode": "raw",
-					"raw": "{\n  \"to_device_id\": \"{{device_id}}\",\n  \"from_device_id\": \"postman-caller-001\",\n  \"from_username\": \"Postman\",\n  \"type\": \"audio\"\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
+					"mode": "formdata",
+					"formdata": [
+						{"key": "to_device_id", "value": "", "type": "text", "enabled": true},
+						{"key": "to_phone_number", "value": "", "type": "text", "enabled": true},
+						{"key": "from_device_id", "value": "{{device_id}}", "type": "text", "enabled": true},
+						{"key": "from_username", "value": "", "type": "text", "enabled": true},
+						{"key": "type", "value": "audio", "type": "text", "enabled": true}
+					]
 				},
-				"description": "Déclenche une sonnerie sur l'appareil ciblé via WebSocket (Reverb).\n\nLe device_id cible doit correspondre à celui du client connecté à Reverb.\nUtilise 'Get Contacts' d'abord pour récupérer le bon device_id."
+				"description": "Déclenche une sonnerie sur l'appareil ciblé. Nécessite le token Bearer. Le device_id cible doit correspondre à un appareil connecté ; adapte les champs JSON avant l'envoi."
 			},
 			"response": [],
 			"event": [
@@ -111,7 +191,7 @@
 				"method": "POST",
 				"header": [
 					{
-						"key": "Content-Type",
+						"key": "Accept",
 						"value": "application/json"
 					}
 				],
@@ -121,15 +201,18 @@
 					"path": ["api", "v1", "call", "signal"]
 				},
 				"body": {
-					"mode": "raw",
-					"raw": "{\n  \"to_device_id\": \"{{device_id}}\",\n  \"from_device_id\": \"postman-caller-001\",\n  \"type\": \"offer\",\n  \"payload\": {\n    \"sdp\": {\n      \"type\": \"offer\",\n      \"sdp\": \"v=0\\r\\no=- 0 0 IN IP4 127.0.0.1\\r\\ns=-\\r\\nt=0 0\\r\\na=group:BUNDLE 0\\r\\na=extmap-allow-mixed\\r\\na=msid-semantic: WMS stream0\\r\\nm=audio 9 UDP/TLS/RTP/SAVPF 111\\r\\nc=IN IP4 0.0.0.0\\r\\na=rtcp:9 IN IP4 0.0.0.0\\r\\na=ice-ufrag:test1\\r\\na=ice-pwd:testpassword123456\\r\\na=fingerprint:sha-256 AA:BB:CC\\r\\na=setup:actpass\\r\\na=mid:0\\r\\na=sendrecv\\r\\na=msid:stream0 audio0\\r\\na=rtpmap:111 opus/48000/2\\r\\na=fmtp:111 minptime=10;useinbandfec=1\\r\\na=ssrc:12345 cname:test\\r\\n\"\n    }\n  }\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
+					"mode": "formdata",
+					"formdata": [
+						{"key": "to_device_id", "value": "", "type": "text", "enabled": true},
+						{"key": "to_user_id", "value": "", "type": "text", "enabled": true},
+						{"key": "from_device_id", "value": "{{device_id}}", "type": "text", "enabled": true},
+						{"key": "type", "value": "offer", "type": "text", "enabled": true},
+						{"key": "payload[sdp][type]", "value": "offer", "type": "text", "enabled": true},
+						{"key": "payload[sdp][sdp]", "value": "", "type": "text", "enabled": true},
+						{"key": "call_id", "value": "", "type": "text", "enabled": true}
+					]
 				},
-				"description": "Envoie un message de signaling WebRTC au device ciblé.\n\nTypes :\n- 'offer' : SDP offer (appelant → récepteur)\n- 'answer' : SDP answer (récepteur → appelant)\n- 'candidate' : ICE candidate (échange bidirectionnel)"
+				"description": "Envoie un message de signaling WebRTC au device ciblé. Nécessite le token Bearer. Types : offer, answer ou candidate. Remplace les valeurs d'exemple dans le corps JSON par les données SDP/ICE de l'appel."
 			},
 			"response": [],
 			"event": [
