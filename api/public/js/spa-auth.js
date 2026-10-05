@@ -203,7 +203,38 @@
 
     // Vérification de sécurité STRICTE avant de laisser entrer dans l'application
     window.verifyAuthOnStartup = async function() {
-      const token = authToken();
+      let token = authToken();
+
+      // ── Mode démo : session automatique ──
+      // Le script inline de demo.html PURGE `auth_token` à chaque chargement
+      // (pour repartir d'un onglet propre). Sans cette branche, la fonction
+      // rendait la main aussitôt : showAuthScreen() + false, SANS APPEL API.
+      // Résultat : le testeur restait bloqué sur l'écran de connexion et la
+      // démo n'affichait jamais le portefeuille. Vérifié au navigateur
+      // (0 appel API, écran de connexion persistant).
+      // On va donc chercher une session factice : la route /auth/login de démo
+      // ignore le contenu de la requête et renvoie toujours un jeton fixe.
+      if (!token && isDemoMode()) {
+        try {
+          const resDemo = await fetch(getApiBase() + "/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Accept": "application/json" },
+            body: "{}"
+          });
+
+          if (resDemo.ok) {
+            storeSession(await resDemo.json());
+            hideAuthScreen();
+            return true;
+          }
+          console.warn("[demo] Session de démo refusée (HTTP " + resDemo.status + ")");
+        } catch (e) {
+          console.warn("[demo] Session de démo impossible :", e && e.message);
+        }
+        // Échec : on laisse l'écran de connexion visible plutôt qu'une démo
+        // muette — le testeur pourra alors saisir un identifiant quelconque.
+      }
+
       if (!token) {
         showAuthScreen();
         return false;
