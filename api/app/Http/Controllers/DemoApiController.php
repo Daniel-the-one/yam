@@ -332,6 +332,186 @@ class DemoApiController extends Controller
     }
 
     /**
+     * POST /api/demo/v1/auth/register — création de compte factice.
+     *
+     * Même enveloppe que `authLogin()` : un testeur qui clique « Créer un
+     * compte » sur l'écran de connexion atterrit donc dans la démo au lieu
+     * d'y rester bloqué.
+     */
+    public function authRegister(): JsonResponse
+    {
+        return response()->json([
+            'demo' => true,
+            'message' => 'Création de compte de démonstration — aucun compte réel créé.',
+            'data' => [
+                'token' => self::JETON_DEMO,
+                'user' => $this->demoUser(),
+                'device' => [
+                    'id' => 9001,
+                    'device_id' => 'demo-device',
+                    'label' => 'Navigateur démo',
+                    'platform' => 'web',
+                    'last_seen_at' => '2026-10-05T00:00:00.000000Z',
+                ],
+            ],
+        ], 201);
+    }
+
+    // ---------------------------------------------------------------
+    // Contacts, appareils et signalisation d'appels
+    //
+    // Ces endpoints ont été ajoutés après coup : la SPA les appelle, mais la
+    // démo ne les exposait pas, ce qui laissait un 404 sur l'onglet Contacts
+    // et rendait l'appel impossible. Constaté au navigateur, pas à la lecture.
+    //
+    // Ils restent STATIQUES : aucune écriture, donc la liste renvoyée ne
+    // change pas après un POST ou un DELETE. C'est cohérent avec le reste de
+    // la démo (le portefeuille ne bouge pas non plus après un transfert) et
+    // cela évite d'introduire le moindre stockage en mémoire de session.
+    // ---------------------------------------------------------------
+
+    /**
+     * GET /api/demo/v1/contacts — liste de contacts factice.
+     *
+     * Forme alignée sur `ContactController::index()` : le client lit
+     * `data.contacts[].user_id / name / phone_number`.
+     */
+    public function contacts(): JsonResponse
+    {
+        return response()->json([
+            'demo' => true,
+            'contacts' => [
+                [
+                    'user_id' => 9002,
+                    'name' => 'Dr Demo',
+                    'username' => 'dr-demo',
+                    'phone_number' => '+228 90 00 00 02',
+                    'device_id' => 'demo-device-2',
+                    'is_online' => true,
+                ],
+                [
+                    'user_id' => 9003,
+                    'name' => 'Patient Démo',
+                    'username' => 'patient-demo',
+                    'phone_number' => '+228 90 00 00 03',
+                    'device_id' => 'demo-device-3',
+                    'is_online' => false,
+                ],
+            ],
+        ]);
+    }
+
+    /** POST /api/demo/v1/contacts — no-op. */
+    public function storeContact(): JsonResponse
+    {
+        return response()->json([
+            'demo' => true,
+            'message' => 'Contact de démonstration — aucun contact enregistré.',
+        ], 201);
+    }
+
+    /** DELETE /api/demo/v1/contacts/{contactUserId} — no-op. */
+    public function destroyContact(int $contactUserId): JsonResponse
+    {
+        return response()->json([
+            'demo' => true,
+            'message' => 'Retrait de démonstration — aucun contact enregistré.',
+        ]);
+    }
+
+    /**
+     * GET /api/demo/v1/devices — appareils factices.
+     *
+     * Forme alignée sur `DeviceController::index()` : le client lit
+     * `data.devices[].label / platform / device_id`.
+     */
+    public function devices(): JsonResponse
+    {
+        return response()->json([
+            'demo' => true,
+            'devices' => [
+                [
+                    'id' => 9001,
+                    'device_id' => 'demo-device',
+                    'label' => 'Navigateur démo',
+                    'platform' => 'web',
+                    'last_seen_at' => '2026-10-05T00:00:00.000000Z',
+                ],
+                [
+                    'id' => 9002,
+                    'device_id' => 'demo-device-2',
+                    'label' => 'Android démo',
+                    'platform' => 'android',
+                    'last_seen_at' => '2026-10-04T18:30:00.000000Z',
+                ],
+            ],
+        ]);
+    }
+
+    /** POST /api/demo/v1/devices/register — no-op. */
+    public function registerDevice(): JsonResponse
+    {
+        return response()->json([
+            'demo' => true,
+            'message' => 'Appareil de démonstration — aucun appareil enregistré.',
+        ], 201);
+    }
+
+    /** DELETE /api/demo/v1/devices/{deviceId} — no-op. */
+    public function destroyDevice(string $deviceId): JsonResponse
+    {
+        return response()->json([
+            'demo' => true,
+            'message' => 'Retrait de démonstration — aucun appareil enregistré.',
+        ]);
+    }
+
+    /**
+     * Signalisation d'appels — no-op.
+     *
+     * ATTENTION au chemin : la SPA appelle `/call/ring`, `/call/signal` et
+     * `/call/cancel` (voir `spa-calls.js`), alors que les routes
+     * `/appels/init` et `/appels/{id}/{action}` declarées plus haut ne sont
+     * appelées par AUCUN code. Elles avaient été écrites en suivant le nom
+     * français de l'entité, sans vérifier le nom réel des endpoints.
+     * Un 404 ici rendait l'appel impossible ; ces trois routes le corrigent.
+     *
+     * Trois méthodes distinctes plutôt qu'un paramètre par défaut de route :
+     * Laravel ne passe que les *paramètres* de route en argument de méthode
+     * (pas les *defaults*), donc une signature unique receiving `'action'`
+     *levait une ArgumentCountError.
+     */
+    public function callRing(): JsonResponse
+    {
+        return $this->signaler('ring');
+    }
+
+    public function callSignal(): JsonResponse
+    {
+        return $this->signaler('signal');
+    }
+
+    public function callCancel(): JsonResponse
+    {
+        return $this->signaler('cancel');
+    }
+
+    private function signaler(string $action): JsonResponse
+    {
+        return response()->json([
+            'demo' => true,
+            'message' => 'Signalisation de démonstration — aucun appel ni facturation réels.',
+            'action' => $action,
+            'data' => [
+                'appel_id' => 9001,
+                'solde_consomme' => 0,
+                'duree_secondes' => 0,
+                'tarif_par_minute' => 100,
+            ],
+        ]);
+    }
+
+    /**
      * Profil utilisateur factice, aligné sur `AuthController::userPayload()`.
      *
      * Le `phone_number` est volontairement vide : la démo n'imite aucun

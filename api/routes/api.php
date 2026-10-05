@@ -48,9 +48,27 @@ Route::prefix('demo/v1')->name('demo.')->group(function () {
     // fixe absente de `personal_access_tokens` — jamais valide.
     Route::post('/auth/login', [DemoApiController::class, 'authLogin']);
     Route::post('/auth/logout', [DemoApiController::class, 'authLogout']);
+    Route::post('/auth/register', [DemoApiController::class, 'authRegister']);
     Route::get('/users/me', [DemoApiController::class, 'me']);
     Route::get('/users/search', [DemoApiController::class, 'searchUsers']);
     Route::get('/config', [DemoApiController::class, 'config']);
+
+    // Contacts et appareils : sans ces routes, l'onglet Contacts et l'écran
+    // Paramètres renvoyaient 404 en démo (constaté au navigateur).
+    Route::get('/contacts', [DemoApiController::class, 'contacts']);
+    Route::post('/contacts', [DemoApiController::class, 'storeContact']);
+    Route::delete('/contacts/{contactUserId}', [DemoApiController::class, 'destroyContact'])
+        ->whereNumber('contactUserId');
+    Route::get('/devices', [DemoApiController::class, 'devices']);
+    Route::post('/devices/register', [DemoApiController::class, 'registerDevice']);
+    Route::delete('/devices/{deviceId}', [DemoApiController::class, 'destroyDevice']);
+
+    // Signalisation : la SPA appelle /call/ring, /call/signal et /call/cancel
+    // (spa-calls.js). Les routes /appels/* ci-dessous ne sont appelées par
+    // personne et restaient donc inatteignables.
+    Route::post('/call/ring', [DemoApiController::class, 'callRing']);
+    Route::post('/call/signal', [DemoApiController::class, 'callSignal']);
+    Route::post('/call/cancel', [DemoApiController::class, 'callCancel']);
 
     Route::get('/wallet', [DemoApiController::class, 'wallet']);
     Route::get('/wallet/transactions', [DemoApiController::class, 'transactions']);

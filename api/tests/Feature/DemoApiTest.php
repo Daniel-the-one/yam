@@ -197,6 +197,14 @@ class DemoApiTest extends TestCase
             ['post', '/api/demo/v1/appels/9001/decrocher'],
             ['post', '/api/demo/v1/appels/9001/heartbeat'],
             ['post', '/api/demo/v1/appels/9001/terminer'],
+            ['post', '/api/demo/v1/auth/register'],
+            ['get', '/api/demo/v1/contacts'],
+            ['post', '/api/demo/v1/contacts'],
+            ['get', '/api/demo/v1/devices'],
+            ['post', '/api/demo/v1/devices/register'],
+            ['post', '/api/demo/v1/call/ring'],
+            ['post', '/api/demo/v1/call/signal'],
+            ['post', '/api/demo/v1/call/cancel'],
         ];
 
         foreach ($appels as [$methode, $url]) {
@@ -210,5 +218,85 @@ class DemoApiTest extends TestCase
                 "{$url} ne renvoie pas demo=true : un client pourrait le prendre pour du réel."
             );
         }
+    }
+
+    /**
+     * Couverture des endpoints réellement appelés par le client web.
+     *
+     * La SPA a été écrite contre l'API réelle : chaque appel passe par
+     * `apiUrl()`, donc `/api/demo/v1` en démo. Toute route que la SPA appelle
+     * doit exister sous le préfixe démo, sinon le testeur voit un 404.
+     *
+     * Ce test a été ajouté après avoir constaté AU NAVIGATEUR que la démo
+     * restait bloquée sur l'écran de connexion (0 appel API) et renvoyait 404
+     * sur l'onglet Contacts et sur les trois routes de signalisation d'appel.
+     * Les routes `/appels/*` existantes ne sont volontairement pas listées ici :
+     * aucun code ne les appelle, le client speaking `/call/*`.
+     */
+    public function test_client_web_contracts_are_all_covered_by_the_demo_api(): void
+    {
+        // Chemins relevés dans api/public/js/spa-*.js via apiUrl()/apiPrefix(),
+        // avec la clé que le client lit ensuite dans la réponse.
+        $contrats = [
+            ['get', '/api/demo/v1/users/me', 'data.id'],
+            ['get', '/api/demo/v1/config', 'ice_servers'],
+            ['get', '/api/demo/v1/wallet', 'wallet.solde_raw'],
+            ['get', '/api/demo/v1/wallet/transactions', 'transactions'],
+            // Contacts : le client mappe data.contacts[].user_id / name / phone_number
+            ['get', '/api/demo/v1/contacts', 'contacts.0.user_id'],
+            ['get', '/api/demo/v1/contacts', 'contacts.0.name'],
+            ['get', '/api/demo/v1/contacts', 'contacts.0.phone_number'],
+            // Appareils : le client lit data.devices[].label / platform / device_id
+            ['get', '/api/demo/v1/devices', 'devices.0.label'],
+            ['get', '/api/demo/v1/devices', 'devices.0.platform'],
+            ['get', '/api/demo/v1/devices', 'devices.0.device_id'],
+        ];
+
+        foreach ($contrats as [$methode, $url, $cle]) {
+            $reponse = $methode === 'get'
+                ? $this->getJson($url)
+                : $this->postJson($url);
+
+            $reponse->assertSuccessful();
+            $this->assertNotNull(
+                $reponse->json($cle),
+                "{$url} ne renvoie pas '{$cle}' : le client lit cette clé et afficherait un écran vide."
+            );
+        }
+    }
+
+    /**
+     * La démo doit couvrir les MÊMES chemins de signalisation que la SPA
+     * (`spa-calls.js` appelle /call/ring, /call/signal, /call/cancel).
+     *
+     * Les routes `/appels/init` et `/appels/{id}/{action}` écrites pour la
+     * démo ne sont appelées par aucun code : le nom français de l'entité avait
+     * été pris pour le nom de l'endpoint. Un test qui passe `/appels/*` ne
+     * prouve donc rien sur l'appel depuis le client.
+     */
+    public function test_demo_answer_to_the_real_signalling_paths_used_by_the_client(): void
+    {
+        foreach (['ring', 'signal', 'cancel'] as $action) {
+            $this->postJson("/api/demo/v1/call/{$action}")
+                ->assertSuccessful()
+                ->assertJsonPath('demo', true)
+                ->assertJsonPath('action', $action);
+        }
+    }
+
+    /**
+     * Un testeur qui clique « Créer un compte » sur l'écran de connexion doit
+     * atterrir dans la démo, pas y rester bloqué.
+     */
+    public function test_demo_register_returns_a_session(): void
+    {
+        $this->postJson('/api/demo/v1/auth/register', [
+            'phone_number' => '+22890000001',
+            'password'      => 'peu-importe',
+            'name'          => 'Testeur',
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.token', DemoApiController::JETON_DEMO)
+            ->assertJsonPath('data.user.id', 9001);
     }
 }
