@@ -67,6 +67,7 @@ web/.env
 
 # ── Backups / artefacts dev ──
 deploy/backup-*/
+deploy/backups/
 deploy/migrate_*.php
 changes-call-flow.txt
 settings_test_app/
