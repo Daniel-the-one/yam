@@ -64,18 +64,27 @@ class DebugController extends Controller
             'openssl' => extension_loaded('openssl'),
         ];
 
-        // Variables d'environnement Reverb (masquées)
+        // Variables d'environnement REVERB — VOLONTAIREMENT MASQUÉES.
+        //
+        // Cette route est un pur outil de diagnostic : elle est
+        // enregistrée dès que APP_DEBUG=true. Exposer une clé en clair
+        // dans une réponse HTTP revient à la publier — un tunnel de
+        // démonstration la rendrait lisible par quiconque. On ne renvoie
+        // donc que « défini / non défini », ce qui suffit pour diagnostiquer
+        // un handshake WebSocket qui échoue.
+        $masque = static fn (string $cle): string => env($cle) ? '(défini, masqué)' : '(non défini)';
+
         $env = [
-            'REVERB_APP_KEY' => env('REVERB_APP_KEY', '(non défini)'),
-            'REVERB_APP_SECRET' => env('REVERB_APP_SECRET', '(non défini)'),
-            'REVERB_APP_ID' => env('REVERB_APP_ID', '(non défini)'),
+            'REVERB_APP_KEY' => $masque('REVERB_APP_KEY'),
+            'REVERB_APP_SECRET' => $masque('REVERB_APP_SECRET'),
+            'REVERB_APP_ID' => $masque('REVERB_APP_ID'),
             'REVERB_SERVER_HOST' => env('REVERB_SERVER_HOST', '(non défini)'),
             'REVERB_SERVER_PORT' => env('REVERB_SERVER_PORT', '(non défini)'),
             'REVERB_HOST' => env('REVERB_HOST', '(non défini)'),
             'REVERB_PORT' => env('REVERB_PORT', '(non défini)'),
             'REVERB_SCHEME' => env('REVERB_SCHEME', '(non défini)'),
             'APP_ENV' => env('APP_ENV', '(non défini)'),
-            'APP_KEY' => env('APP_KEY', '(non défini)'),
+            'APP_KEY' => $masque('APP_KEY'),
         ];
 
         return response()->json([
