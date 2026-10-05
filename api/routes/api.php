@@ -63,6 +63,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/users/me', [AuthController::class, 'me']);
     Route::get('/v1/users/search', [UserSearchController::class, 'search']);
     Route::get('/v1/contacts', [ContactController::class, 'index']);
+    Route::post('/v1/contacts', [ContactController::class, 'store']);
+    Route::delete('/v1/contacts/{contactUserId}', [ContactController::class, 'destroy'])
+        ->whereNumber('contactUserId');
 
     // Registre d'appareils de l'utilisateur connecté
     Route::get('/v1/devices', [DeviceController::class, 'index']);

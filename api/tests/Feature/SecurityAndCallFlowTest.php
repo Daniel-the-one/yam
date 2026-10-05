@@ -42,6 +42,7 @@ class SecurityAndCallFlowTest extends TestCase
     {
         $user = $this->createUser(['name' => 'Test User', 'username' => 'testuser']);
         $otherUser = $this->createUser(['name' => 'Other Contact', 'username' => 'othercontact']);
+        $stranger = $this->createUser(['name' => 'Unrelated Stranger', 'username' => 'stranger']);
 
         Sanctum::actingAs($user);
 
@@ -49,11 +50,23 @@ class SecurityAndCallFlowTest extends TestCase
         $meRes = $this->getJson('/api/v1/users/me')->assertOk();
         $this->assertEquals($user->id, $meRes->json('data.id'));
 
-        // GET /contacts - n'inclut pas l'utilisateur lui-même
+        // GET /contacts - ne divulgue que les contacts enregistrés par l'utilisateur.
+        // Aucun contact ajouté => aucun utilisateur tiers exposé.
+        $contactsRes = $this->getJson('/api/v1/contacts')->assertOk();
+        $this->assertCount(0, $contactsRes->json('contacts'));
+
+        // POST /contacts - ajout explicite du contact
+        $this->postJson('/api/v1/contacts', ['contact_user_id' => $otherUser->id])->assertCreated();
+
+        // GET /contacts - contient le contact ajouté, exclut soi-même et les inconnus
         $contactsRes = $this->getJson('/api/v1/contacts')->assertOk();
         $contacts = $contactsRes->json('contacts');
         $this->assertCount(1, $contacts);
         $this->assertEquals($otherUser->id, $contacts[0]['user_id']);
+
+        $returnedIds = array_column($contacts, 'user_id');
+        $this->assertNotContains($user->id, $returnedIds);
+        $this->assertNotContains($stranger->id, $returnedIds);
     }
 
     public function test_ring_broadcasts_incoming_call_without_duplicates(): void
