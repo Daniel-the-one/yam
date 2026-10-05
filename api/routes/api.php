@@ -43,6 +43,15 @@ Route::post('/v1/wallet/recharge/notify', [WalletController::class, 'notifyRecha
 // Réponses statiques de démonstration (aucune base ni transaction)
 // ---------------------------------------------------------
 Route::prefix('demo/v1')->name('demo.')->group(function () {
+    // Amorçage de session : sans ces endpoints, un client web reste
+    // bloqué sur son écran de connexion. Le jeton renvoyé est une chaîne
+    // fixe absente de `personal_access_tokens` — jamais valide.
+    Route::post('/auth/login', [DemoApiController::class, 'authLogin']);
+    Route::post('/auth/logout', [DemoApiController::class, 'authLogout']);
+    Route::get('/users/me', [DemoApiController::class, 'me']);
+    Route::get('/users/search', [DemoApiController::class, 'searchUsers']);
+    Route::get('/config', [DemoApiController::class, 'config']);
+
     Route::get('/wallet', [DemoApiController::class, 'wallet']);
     Route::get('/wallet/transactions', [DemoApiController::class, 'transactions']);
     Route::post('/wallet/recharge', [DemoApiController::class, 'recharge']);

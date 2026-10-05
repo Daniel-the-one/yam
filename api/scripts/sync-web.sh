@@ -8,6 +8,11 @@
 #
 #   ./scripts/sync-web.sh          copie TOUS les fichiers web
 #   ./scripts/sync-web.sh spa-calls.js   copie un fichier précis
+#
+# Il génère en plus public/demo.html : l'UNIQUE page d'entrée de
+# la démo. Elle sert la même SPA mais force le mode démo avant le
+# chargement de spa-core.js, pour qu'un testeur n'ait rien à
+# configurer. Voir api/docs/API_DEMO.md.
 # =============================================================
 set -euo pipefail
 
@@ -31,10 +36,58 @@ FILES=(
   "js/spa-bootstrap.js:js/spa-bootstrap.js"
   "js/spa-calls.js:js/spa-calls.js"
   "js/spa-contacts.js:js/spa-contacts.js"
+  "js/spa-devices.js:js/spa-devices.js"
   "js/spa-core.js:js/spa-core.js"
   "js/spa-network.js:js/spa-network.js"
   "js/spa-push.js:js/spa-push.js"
+  "js/spa-wallet.js:js/spa-wallet.js"
 )
+
+# ── Construit public/demo.html ──────────────────────────────────
+# Copie de index.html avec un garde-fou injecté AVANT spa-core.js :
+# sans cela le client démarrerait en mode réel et chercherait
+# /api/v1, donc le testeur verrait l'écran de connexion plutôt que
+# la démo. Injecter ici plutôt que dans web/index.html garde la
+# source web unique (app.html reste le client réel).
+genere_demo_html() {
+  local src_html="$SRC/index.html"
+  local out="$DST/demo.html"
+
+  [[ -f "$src_html" ]] || { echo "⚠ $src_html absent — demo.html non généré"; return 0; }
+
+  python3 - "$src_html" "$out" <<'PY'
+import sys, io
+
+src, out = sys.argv[1], sys.argv[2]
+html = io.open(src, encoding="utf-8").read()
+
+# Doit être inséré avant spa-core.js : c'est ce fichier qui lit
+# yam_demo_mode au chargement.
+ancre = '<script src="js/spa-core.js"></script>'
+garde = """<script>
+  /* Généré par api/scripts/sync-web.sh — ne pas éditer à la main.
+   * Force le mode démo AVANT spa-core.js, qui lit ce drapeau au
+   * chargement. Sans ce script, la SPA viserait /api/v1 (mode réel)
+   * et afficherait l'écran de connexion au lieu de la démo. */
+  try {
+    localStorage.setItem("yam_demo_mode", "1");
+    // Ouvre la démo même si l'onglet avait mémorisé l'adresse d'un
+    // ancien tunnel ou d'un ancien LAN : on repart de l'URL courante.
+    localStorage.removeItem("yam_server_url");
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("user_id");
+  } catch (e) { /* mode privé : la SPA tombera sur l'API réelle */ }
+</script>
+"""
+
+if ancre not in html:
+    sys.exit("ancre spa-core.js introuvable dans " + src)
+
+io.open(out, "w", encoding="utf-8").write(html.replace(ancre, garde + ancre, 1))
+PY
+
+  ok "Généré : demo.html (mode démo forcé)"
+}
 
 # Si un fichier précis est demandé, on ne synchronise que lui
 if [[ $# -gt 0 ]]; then
@@ -53,6 +106,8 @@ if [[ $# -gt 0 ]]; then
     exit 1
   fi
   FILES=("${matched[@]}")
+else
+  genere_demo_html
 fi
 
 for entry in "${FILES[@]}"; do

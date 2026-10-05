@@ -6,6 +6,15 @@ use Illuminate\Http\JsonResponse;
 
 class DemoApiController extends Controller
 {
+    /**
+     * Jeton factice renvoyé par la connexion démo.
+     *
+     * Chaîne fixe, absente de `personal_access_tokens`, donc invalide
+     * partout ailleurs. Les routes démo n'utilisant pas `auth:sanctum`,
+     * elle n'est jamais vérifiée — mais un test peut le prouver.
+     */
+    public const JETON_DEMO = 'demo-jeton-non-valide';
+
     public function wallet(): JsonResponse
     {
         return response()->json([
@@ -206,5 +215,138 @@ class DemoApiController extends Controller
                 'raison_fin' => 'demo',
             ],
         ]);
+    }
+
+    // ---------------------------------------------------------------
+    // Amorçage de session
+    //
+    // Le client web (SPA) exige une session avant d'afficher le moindre
+    // écran : sans ces endpoints, un testeur reste bloqué sur le
+    // formulaire de connexion et la démo n'est pas « testable ».
+    //
+    // AUCUN de ces appels ne lit la base et AUCUN n'émet de jeton
+    // réellement valide : le jeton ci-dessous est une chaîne fixe qui
+    // n'existe dans aucune table `personal_access_tokens`. Les routes
+    // démo ne passant pas par `auth:sanctum`, il n'est jamais vérifié.
+    // ---------------------------------------------------------------
+
+    /**
+     * POST /api/demo/v1/auth/login — connexion factice, toujours acceptée.
+     *
+     * L'enveloppe reprend exactement celle de `AuthController::login()`
+     * pour que le client n'ait aucun branchement spécial à écrire.
+     */
+    public function authLogin(): JsonResponse
+    {
+        return response()->json([
+            'demo' => true,
+            'message' => 'Connexion de démonstration — aucun compte réel.',
+            'data' => [
+                'token' => self::JETON_DEMO,
+                'user' => $this->demoUser(),
+                'device' => [
+                    'id' => 9001,
+                    'device_id' => 'demo-device',
+                    'label' => 'Navigateur démo',
+                    'platform' => 'web',
+                    'last_seen_at' => '2026-10-05T00:00:00.000000Z',
+                ],
+            ],
+        ]);
+    }
+
+    /**
+     * POST /api/demo/v1/auth/logout — no-op.
+     *
+     * Permet au client de « se déconnecter » sans erreur et sans
+     * révoquer quoi que ce soit.
+     */
+    public function authLogout(): JsonResponse
+    {
+        return response()->json([
+            'demo' => true,
+            'data' => ['ok' => true],
+        ]);
+    }
+
+    /**
+     * GET /api/demo/v1/users/me — profil factice.
+     *
+     * Appelé par le client pour valider une session au démarrage.
+     * `devices_count` est renvoyé pour ne pas casser l'écran Paramètres.
+     */
+    public function me(): JsonResponse
+    {
+        return response()->json([
+            'demo' => true,
+            'data' => [
+                ...$this->demoUser(),
+                'devices_count' => 1,
+            ],
+        ]);
+    }
+
+    /**
+     * GET /api/demo/v1/config — configuration réseau SANS secret.
+     *
+     * Volontairement réduite à des serveurs STUN publics :
+     * le vrai `/v1/config` renvoie les identifiants TURN et la clé
+     * Pusher. Exposer ces valeurs via un tunnel public les aurait
+     * divulguées, donc la démo s'en passe. Conséquence assumée : la découverte
+     * ICE fonctionne, mais un appel ne peut pas franchir un NAT
+     * symétrique — sans effet ici, la démo ne transporte pas de média.
+     */
+    public function config(): JsonResponse
+    {
+        return response()->json([
+            'demo' => true,
+            'app' => ['name' => 'Yam (démo)'],
+            'pusher' => ['app_key' => '', 'cluster' => ''],
+            'turn' => ['url' => '', 'username' => '', 'credential' => ''],
+            'ice_servers' => [
+                ['urls' => [
+                    'stun:stun.l.google.com:19302',
+                    'stun:stun1.l.google.com:19302',
+                    'stun:stun2.l.google.com:19302',
+                ]],
+                ['urls' => ['stun:stun.cloudflare.com:3478']],
+            ],
+        ]);
+    }
+
+    /**
+     * GET /api/demo/v1/users/search — annuaire factice.
+     *
+     * Alimente l'écran Contacts/Répertoire. Deux profils fixes
+     * suffisent à faire fonctionner la recherche et l'ajout.
+     */
+    public function searchUsers(): JsonResponse
+    {
+        return response()->json([
+            'demo' => true,
+            'data' => [
+                ['id' => 9002, 'name' => 'Dr Demo', 'username' => 'dr-demo', 'role' => 'medecin'],
+                ['id' => 9003, 'name' => 'Patient Démo', 'username' => 'patient-demo', 'role' => 'patient'],
+            ],
+        ]);
+    }
+
+    /**
+     * Profil utilisateur factice, aligné sur `AuthController::userPayload()`.
+     *
+     * Le `phone_number` est volontairement vide : la démo n'imite aucun
+     * numéro réel, et fabriquer un numéro au format E.164 ici nuirait à
+     * la lisibilité sans aucun gain.
+     */
+    private function demoUser(): array
+    {
+        return [
+            'id' => 9001,
+            'name' => 'Utilisateur Démo',
+            'username' => 'demo-user',
+            'phone_number' => '',
+            'phone_verified' => false,
+            'role' => 'patient',
+        ];
     }
 }
