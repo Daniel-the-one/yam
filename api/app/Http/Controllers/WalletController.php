@@ -106,6 +106,42 @@ class WalletController extends Controller
     }
 
     /**
+     * POST /api/v1/wallet/withdraw
+     *
+     * Retrait Mobile Money : débite le wallet et enregistre la sortie.
+     * `Idempotency-Key` gérée comme pour recharge/transfert (un double appui
+     * ou un retry réseau ne doit pas débiter deux fois).
+     *
+     * Solde insuffisant → 402 (et non 422) : c'est une impossibilité
+     * financière, pas une erreur de formulaire.
+     */
+    public function withdraw(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'montant' => 'required|numeric|min:1|max:1000000',
+            'phone_number' => 'nullable|string|max:20',
+        ]);
+
+        $resultat = app(IdempotencyService::class)->execute(
+            'wallet.withdraw',
+            $request->user()->id,
+            $request->header(IdempotencyService::HEADER_ENTREE),
+            $validated,
+            function () use ($request, $validated) {
+                $data = app(WalletService::class)->effectuerRetrait(
+                    $request->user(),
+                    (float) $validated['montant'],
+                    $validated['phone_number'] ?? null,
+                );
+
+                return response()->json($data, 201);
+            }
+        );
+
+        return $resultat['response'];
+    }
+
+    /**
      * POST /api/v1/wallet/recharge/notify
      *
      * Webhook de notification CinetPay (AUCUNE authentification utilisateur :

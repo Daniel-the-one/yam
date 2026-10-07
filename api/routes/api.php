@@ -40,46 +40,47 @@ Route::post('/v1/wallet/recharge/notify', [WalletController::class, 'notifyRecha
     ->middleware('throttle:120,1');
 
 // ---------------------------------------------------------
-// Réponses statiques de démonstration (aucune base ni transaction)
+// API de démonstration : stockage dédié, sans accès aux comptes réels
 // ---------------------------------------------------------
 Route::prefix('demo/v1')->name('demo.')->group(function () {
-    // Amorçage de session : sans ces endpoints, un client web reste
-    // bloqué sur son écran de connexion. Le jeton renvoyé est une chaîne
-    // fixe absente de `personal_access_tokens` — jamais valide.
-    Route::post('/auth/login', [DemoApiController::class, 'authLogin']);
-    Route::post('/auth/logout', [DemoApiController::class, 'authLogout']);
-    Route::post('/auth/register', [DemoApiController::class, 'authRegister']);
-    Route::get('/users/me', [DemoApiController::class, 'me']);
-    Route::get('/users/search', [DemoApiController::class, 'searchUsers']);
+    Route::get('/', [DemoApiController::class, 'index']);
     Route::get('/config', [DemoApiController::class, 'config']);
+    Route::post('/auth/login', [DemoApiController::class, 'authLogin'])->middleware('throttle:10,1');
+    Route::post('/auth/register', [DemoApiController::class, 'authRegister'])->middleware('throttle:10,1');
 
-    // Contacts et appareils : sans ces routes, l'onglet Contacts et l'écran
-    // Paramètres renvoyaient 404 en démo (constaté au navigateur).
-    Route::get('/contacts', [DemoApiController::class, 'contacts']);
-    Route::post('/contacts', [DemoApiController::class, 'storeContact']);
-    Route::delete('/contacts/{contactUserId}', [DemoApiController::class, 'destroyContact'])
-        ->whereNumber('contactUserId');
-    Route::get('/devices', [DemoApiController::class, 'devices']);
-    Route::post('/devices/register', [DemoApiController::class, 'registerDevice']);
-    Route::delete('/devices/{deviceId}', [DemoApiController::class, 'destroyDevice']);
+    Route::middleware(['demo.auth', 'throttle:60,1'])->group(function () {
+        Route::post('/auth/logout', [DemoApiController::class, 'authLogout']);
+        Route::get('/users/me', [DemoApiController::class, 'me']);
+        Route::get('/users/search', [DemoApiController::class, 'searchUsers']);
 
-    // Signalisation : la SPA appelle /call/ring, /call/signal et /call/cancel
-    // (spa-calls.js). Les routes /appels/* ci-dessous ne sont appelées par
-    // personne et restaient donc inatteignables.
-    Route::post('/call/ring', [DemoApiController::class, 'callRing']);
-    Route::post('/call/signal', [DemoApiController::class, 'callSignal']);
-    Route::post('/call/cancel', [DemoApiController::class, 'callCancel']);
+        Route::get('/contacts', [DemoApiController::class, 'contacts']);
+        Route::post('/contacts', [DemoApiController::class, 'storeContact']);
+        Route::delete('/contacts/{contactUserId}', [DemoApiController::class, 'destroyContact'])
+            ->whereNumber('contactUserId');
+        Route::get('/devices', [DemoApiController::class, 'devices']);
+        Route::post('/devices/register', [DemoApiController::class, 'registerDevice']);
+        Route::delete('/devices/{deviceId}', [DemoApiController::class, 'destroyDevice']);
 
-    Route::get('/wallet', [DemoApiController::class, 'wallet']);
-    Route::get('/wallet/transactions', [DemoApiController::class, 'transactions']);
-    Route::post('/wallet/recharge', [DemoApiController::class, 'recharge']);
-    Route::post('/wallet/transfert', [DemoApiController::class, 'transfert']);
-    Route::post('/wallet/recharge/notify', [DemoApiController::class, 'webhook']);
+        Route::post('/call/ring', [DemoApiController::class, 'callRing']);
+        Route::post('/call/signal', [DemoApiController::class, 'callSignal']);
+        Route::post('/call/cancel', [DemoApiController::class, 'callCancel']);
 
-    Route::post('/appels/init', [DemoApiController::class, 'initierAppel']);
-    Route::post('/appels/{appel}/{action}', [DemoApiController::class, 'actionAppel'])
-        ->whereIn('action', ['lancer', 'decrocher', 'heartbeat', 'terminer']);
-    Route::get('/appels/{appel}', [DemoApiController::class, 'afficherAppel']);
+        Route::get('/wallet', [DemoApiController::class, 'wallet']);
+        Route::get('/wallet/transactions', [DemoApiController::class, 'transactions']);
+        Route::post('/wallet/recharge', [DemoApiController::class, 'recharge']);
+        Route::post('/wallet/transfert', [DemoApiController::class, 'transfert']);
+        Route::post('/wallet/withdraw', [DemoApiController::class, 'withdraw']);
+        Route::post('/wallet/recharge/notify', [DemoApiController::class, 'webhook']);
+
+        Route::get('/kondjipro/solde', [DemoApiController::class, 'kondjiproSolde']);
+        Route::post('/kondjipro/encaissement', [DemoApiController::class, 'kondjiproEncaissement']);
+        Route::post('/kondjipro/encaissement/{reference}/confirm', [DemoApiController::class, 'confirmerKondjiproEncaissement']);
+
+        Route::post('/appels/init', [DemoApiController::class, 'initierAppel']);
+        Route::post('/appels/{appel}/{action}', [DemoApiController::class, 'actionAppel'])
+            ->whereIn('action', ['lancer', 'decrocher', 'heartbeat', 'terminer']);
+        Route::get('/appels/{appel}', [DemoApiController::class, 'afficherAppel']);
+    });
 });
 
 // ---------------------------------------------------------
@@ -116,5 +117,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/wallet', [WalletController::class, 'show'])->middleware('throttle:60,1');
     Route::post('/v1/wallet/recharge', [WalletController::class, 'recharge'])->middleware('throttle:10,1');
     Route::post('/v1/wallet/transfert', [WalletController::class, 'transfert'])->middleware('throttle:20,1');
+    Route::post('/v1/wallet/withdraw', [WalletController::class, 'withdraw'])->middleware('throttle:20,1');
     Route::get('/v1/wallet/transactions', [WalletController::class, 'transactions'])->middleware('throttle:60,1');
 });

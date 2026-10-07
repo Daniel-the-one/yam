@@ -17,6 +17,7 @@ class Transaction extends Model
     // Types
     public const TYPE_TRANSFER = 'TRANSFER';
     public const TYPE_TOPUP = 'TOPUP';
+    public const TYPE_WITHDRAW = 'WITHDRAW';
 
     // Sens
     public const SENS_CREDIT = 'credit';

@@ -319,6 +319,100 @@ class WalletTest extends TestCase
     }
 
     // ---------------------------------------------------------------
+    // Retrait (POST /api/v1/wallet/withdraw)
+    // ---------------------------------------------------------------
+
+    public function test_retrait_debite_immediatement_et_enregistre_la_sortie(): void
+    {
+        $alice = $this->avecWallet($this->createUser(solde: 5000));
+
+        Sanctum::actingAs($alice);
+        $this->postJson('/api/v1/wallet/withdraw', [
+            'montant'      => 1500,
+            'phone_number' => '+228900000001',
+        ])->assertCreated()
+            ->assertJsonPath('status', '000')
+            ->assertJsonPath('information.status', Transaction::STATUS_REUSSIE)
+            ->assertJsonPath('information.new_balance', '3 500 Fcfa');
+
+        // Contrairement à la recharge, un retrait sort tout de suite du solde.
+        $this->assertSame(3500.00, (float) $alice->fresh()->solde);
+
+        $this->assertDatabaseHas('transactions', [
+            'user_id'         => $alice->id,
+            'type'            => Transaction::TYPE_WITHDRAW,
+            'sens'            => Transaction::SENS_DEBIT,
+            'status'          => Transaction::STATUS_REUSSIE,
+            'amount_raw'      => 1500.00,
+            'new_balance_raw' => 3500.00,
+        ]);
+        $this->assertSame(1, Transaction::count());
+    }
+
+    /** `phone_number` est optionnel : un retrait sans destinataire reste valide. */
+    public function test_retrait_sans_numero_de_monte_money_est_accepte(): void
+    {
+        $alice = $this->avecWallet($this->createUser(solde: 5000));
+
+        Sanctum::actingAs($alice);
+        $this->postJson('/api/v1/wallet/withdraw', ['montant' => 500])
+            ->assertCreated()
+            ->assertJsonPath('status', '000');
+
+        $this->assertSame(4500.00, (float) $alice->fresh()->solde);
+    }
+
+    public function test_retrait_solde_insuffisant_renvoie_402_sans_debiter(): void
+    {
+        $alice = $this->avecWallet($this->createUser(solde: 500));
+
+        Sanctum::actingAs($alice);
+        $this->postJson('/api/v1/wallet/withdraw', ['montant' => 1000])
+            ->assertStatus(402);
+
+        $this->assertSame(500.00, (float) $alice->fresh()->solde,
+            'Un retrait refusé pour solde insuffisant a malgré tout débité.');
+        $this->assertSame(0, Transaction::count());
+    }
+
+    public function test_retrait_rejoue_avec_la_meme_cle_ne_debite_qu_une_fois(): void
+    {
+        $alice = $this->avecWallet($this->createUser(solde: 5000));
+        Sanctum::actingAs($alice);
+
+        $donnees  = ['montant' => 1000, 'phone_number' => '+228900000002'];
+        $entetes  = ['Idempotency-Key' => 'retrait-rejeu-0001'];
+        $premier  = $this->postJson('/api/v1/wallet/withdraw', $donnees, $entetes)->assertCreated();
+        $reference = $premier->json('information.reference');
+
+        // Un appui double / un retry réseau : même réponse, aucun second débit.
+        $rejeu = $this->postJson('/api/v1/wallet/withdraw', $donnees, $entetes)
+            ->assertCreated()
+            ->assertHeader('Idempotent-Replay', 'true')
+            ->assertJsonPath('information.reference', $reference);
+
+        $this->assertSame($premier->json(), $rejeu->json(),
+            'La réponse rejouée doit être identique pour le client.');
+        $this->assertSame(4000.00, (float) $alice->fresh()->solde);
+        $this->assertSame(1, Transaction::where('type', Transaction::TYPE_WITHDRAW)->count());
+    }
+
+    public function test_retrait_rejette_un_montant_invalide(): void
+    {
+        $alice = $this->avecWallet($this->createUser(solde: 5000));
+
+        Sanctum::actingAs($alice);
+        $this->postJson('/api/v1/wallet/withdraw', [])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('montant');
+        $this->postJson('/api/v1/wallet/withdraw', ['montant' => -10])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('montant');
+
+        $this->assertSame(5000.00, (float) $alice->fresh()->solde);
+    }
+
+    // ---------------------------------------------------------------
     // Consultation
     // ---------------------------------------------------------------
 
@@ -353,6 +447,8 @@ class WalletTest extends TestCase
         $this->postJson('/api/v1/wallet/recharge', ['montant' => 5000, 'phone_number' => '22891112233'])
             ->assertStatus(401);
         $this->postJson('/api/v1/wallet/transfert', ['montant' => 100, 'destinataire_wallet_id' => 'TGW1'])
+            ->assertStatus(401);
+        $this->postJson('/api/v1/wallet/withdraw', ['montant' => 100])
             ->assertStatus(401);
     }
 

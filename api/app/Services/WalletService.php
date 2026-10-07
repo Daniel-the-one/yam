@@ -528,6 +528,99 @@ class WalletService
         ];
     }
 
+    /**
+     * Retrait Mobile Money (POST /api/v1/wallet/withdraw).
+     *
+     * Aucun prestataire de SORTIE (payout) n'est branché sur ce projet — le
+     * seul intégré, CinetPay, ne gère que les entrées (recharge). On enregistre
+     * donc le retrait comme une sortie immédiate : débit sous verrou + transaction
+     * « Réussie ». L'alternative (transaction « En cours » sans débit, comme la
+     * branche Mobile Money de effectuerTransfert) laisserait une transaction
+     * JAMAIS confirmable : ni le solde ni l'état ne correspondraient à ce que
+     * l'utilisateur croit avoir fait.
+     *
+     * ⚠️ Avant toute mise en production d'un vrai retrait : brancher un payout
+     * et repasser en EN_COURS + confirmation serveur (sinon on débite sans
+     * reverser l'argent au client).
+     */
+    public function effectuerRetrait(User $user, float $montant, ?string $phone): array
+    {
+        $user = $this->ensureWallet($user);
+
+        $reference = null;
+
+        // Référence UNIQUE générée puis écrite dans la transaction : en cas de
+        // collision, l'ensemble (référence + débit) est annulé et retenté.
+        $this->reessayerSiCollisionDeReference(function () use ($user, $montant, $phone, &$reference) {
+            $reference = $this->genererReference();
+
+            DB::transaction(function () use ($user, $montant, $phone, $reference) {
+                // Verrou sur la ligne utilisateur : le contrôle du solde et le
+                // débit doivent être inséparables (même règle que le transfert),
+                // sinon deux retraits simultanés partent tous deux sur un solde
+                // qui ne couvre qu'un seul.
+                $locked = User::whereKey($user->id)->lockForUpdate()->first();
+
+                if (! $locked) {
+                    throw ValidationException::withMessages([
+                        'user' => 'Utilisateur introuvable.',
+                    ])->status(404);
+                }
+
+                if ((float) $locked->solde < $montant) {
+                    throw ValidationException::withMessages([
+                        'montant' => 'Solde insuffisant pour effectuer ce retrait.',
+                    ])->status(402);
+                }
+
+                $locked->solde = (float) $locked->solde - $montant;
+                $locked->save();
+
+                $this->creerTransaction($locked, [
+                    'reference' => $reference,
+                    'type' => Transaction::TYPE_WITHDRAW,
+                    'type_name' => 'Retrait',
+                    'sens' => Transaction::SENS_DEBIT,
+                    'amount_raw' => $montant,
+                    'fees_raw' => 0,
+                    'new_balance_raw' => (float) $locked->solde,
+                    'status' => Transaction::STATUS_REUSSIE,
+                    'description' => 'Retrait de ' . $this->formatMontant($montant) . ' ' . $this->deviseSymbol()
+                        . ($phone ? ' vers ' . $phone : ''),
+                    'counterpart_type' => Transaction::COUNTERPART_MOBILE_MONEY,
+                    'counterpart_label' => $phone ? 'Mobile Money — ' . $phone : 'Retrait',
+                    'counterpart_wallet_id' => null,
+                    'counterpart_nom' => $phone,
+                ]);
+            });
+        });
+
+        $user->refresh();
+
+        return [
+            'status' => '000',
+            'message' => 'Retrait Mobile Money effectué avec succès',
+            'information' => [
+                'reference' => $reference,
+                'status' => Transaction::STATUS_REUSSIE,
+                'status_show' => 'Réussie',
+                'status_color' => '0E6E0E',
+                'amount' => '-' . $this->formatMontant($montant) . ' ' . $this->deviseSymbol(),
+                'fees' => $this->formatMontant(0) . ' ' . $this->deviseSymbol(),
+                'new_balance' => $this->formatMontant((float) $user->solde) . ' ' . $this->deviseSymbol(),
+                'devise' => config('wallet.devise'),
+                'is_internal' => 0,
+                'date_transaction' => now()->format('d/m/Y'),
+                'heure_transaction' => now()->format('H:i'),
+                'destinataire' => [
+                    'nom' => $phone,
+                    'wallet_id' => '',
+                    'montant_recu' => $this->formatMontant($montant) . ' ' . $this->deviseSymbol(),
+                ],
+            ],
+        ];
+    }
+
     // ---------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------
