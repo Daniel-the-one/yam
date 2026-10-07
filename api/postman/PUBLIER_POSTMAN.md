@@ -17,17 +17,26 @@ La collection publique est aussi servie par le site à
 `base_url` y pointe vers la prod : c'est voulu, un destinataire du lien doit
 pouvoir tester sans serveur local.
 
-## État réel (07/10/2026) — à corriger avant de diffuser un lien
+## État réel (07/10/2026, soir) — lien d'import opérationnel
 
-- `https://yam.mdkrlabs.dev/api/demo/v1` → **404** : le backend prod n'a pas
-  les routes démo (déploiement en retard). Symptôme identique à celui déjà
-  documenté dans `deploy/deploy-backend.sh`.
-- `https://yam.mdkrlabs.dev/demo.html` → **404**.
-- `https://yam.mdkrlabs.dev/Yam-Demo-API.postman_collection.json` → **404** :
-  la copie publique n'a pas été poussée.
+- `https://yam.mdkrlabs.dev/api/demo/v1` → **200** ✅ (backend déployé).
+- `https://yam.mdkrlabs.dev/demo.html` → **200** ✅.
+- `https://yam.mdkrlabs.dev/Yam-Demo-API.postman_collection.json` → **200** ✅.
 
-Tant que ces trois URL ne répondent pas 200, un lien Postman public pointerait
-vers une API inexistante.
+**Lien d'import auto-hébergé (prêt à diffuser) :**
+
+```
+https://yam.mdkrlabs.dev/Yam-Demo-API.postman_collection.json
+```
+
+Dans Postman : **Import → From link** → coller l'URL. `base_url` pointe déjà
+vers la prod, donc l'import fonctionne sans serveur local.
+
+Validation : `newman run api/postman/Yam-Demo-API.postman_collection.json`
+→ 9 requêtes / 8 assertions / **0 échec** contre la prod.
+
+> Historique : au 07/10/2026 matin, ces trois URL renvoyaient 404 (backend prod
+> en retard). Le déploiement du backend + de `public/` les a rétablies.
 
 ## Procédure
 
