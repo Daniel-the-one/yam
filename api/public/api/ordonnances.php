@@ -36,29 +36,38 @@ if ($pdo) {
         );
         $rows = $stmt->fetchAll();
 
-        $medsStmt = $pdo->prepare(
-            "SELECT nom, quantite, unite, frequence FROM ordonnance_medicaments WHERE ordonnance_id = ? ORDER BY id"
-        );
-
+        // Un seul SELECT pour toutes les ordonnances (évite une requête par ligne).
         $ordonnances = [];
-        foreach ($rows as $r) {
-            $medsStmt->execute([(int)$r['id']]);
-            $meds = [];
+        $medsByOrdonnance = [];
+        $ids = array_map(static fn (array $r): int => (int)$r['id'], $rows);
+        if ($ids) {
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            $medsStmt = $pdo->prepare(
+                "SELECT ordonnance_id, nom, quantite, unite, frequence
+                   FROM ordonnance_medicaments
+                  WHERE ordonnance_id IN ($placeholders)
+                  ORDER BY ordonnance_id, id"
+            );
+            $medsStmt->execute($ids);
             foreach ($medsStmt->fetchAll() as $m) {
-                $meds[] = [
+                $medsByOrdonnance[(int)$m['ordonnance_id']][] = [
                     'nom'       => $m['nom'],
                     'quantite'  => (int)$m['quantite'],
                     'unite'     => $m['unite'] ?? '',
                     'frequence' => $m['frequence'] ?? '',
                 ];
             }
+        }
+
+        foreach ($rows as $r) {
+            $id = (int)$r['id'];
             $ordonnances[] = [
-                'id'          => (int)$r['id'],
-                'numero'      => ordonnance_numero((int)$r['id'], $r['date_ordonnance'] ?? null),
+                'id'          => $id,
+                'numero'      => ordonnance_numero($id, $r['date_ordonnance'] ?? null),
                 'patient'     => $r['patient'] ?? 'Patient inconnu',
-'date'       => $r['date_ordonnance'] ? date('d/m/Y', strtotime($r['date_ordonnance'])) : '',
+                'date'        => $r['date_ordonnance'] ? date('d/m/Y', strtotime($r['date_ordonnance'])) : '',
                 'notes'       => $r['notes'] ?? '',
-                'medicaments' => $meds,
+                'medicaments' => $medsByOrdonnance[$id] ?? [],
             ];
         }
 
@@ -66,6 +75,7 @@ if ($pdo) {
         exit;
     } catch (Exception $e) {
         // Base indisponible ou schéma incomplet → repli sur les données démo.
+        error_log('[kondjipro] ordonnances list: ' . $e->getMessage());
     }
 }
 

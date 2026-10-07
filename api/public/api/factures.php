@@ -36,29 +36,38 @@ if ($pdo) {
         );
         $rows = $stmt->fetchAll();
 
-        $actesStmt = $pdo->prepare(
-            "SELECT code, libelle, prix FROM facture_actes WHERE facture_id = ? ORDER BY id"
-        );
-
+        // Un seul SELECT pour toutes les factures (évite une requête par ligne).
         $factures = [];
-        foreach ($rows as $r) {
-            $actesStmt->execute([(int)$r['id']]);
-            $actes = [];
+        $actesByFacture = [];
+        $ids = array_map(static fn (array $r): int => (int)$r['id'], $rows);
+        if ($ids) {
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            $actesStmt = $pdo->prepare(
+                "SELECT facture_id, code, libelle, prix
+                   FROM facture_actes
+                  WHERE facture_id IN ($placeholders)
+                  ORDER BY facture_id, id"
+            );
+            $actesStmt->execute($ids);
             foreach ($actesStmt->fetchAll() as $a) {
-                $actes[] = [
+                $actesByFacture[(int)$a['facture_id']][] = [
                     'code'    => $a['code'],
                     'libelle' => $a['libelle'],
                     'prix'    => (int)$a['prix'],
                 ];
             }
+        }
+
+        foreach ($rows as $r) {
+            $id = (int)$r['id'];
             $factures[] = [
-                'id'      => (int)$r['id'],
-                'numero'  => facture_numero((int)$r['id'], $r['date_facture'] ?? null),
+                'id'      => $id,
+                'numero'  => facture_numero($id, $r['date_facture'] ?? null),
                 'patient' => $r['patient'] ?? 'Patient inconnu',
                 'montant' => (int)$r['total'],
                 'date'    => $r['date_facture'] ? date('d/m/Y', strtotime($r['date_facture'])) : '',
                 'statut'  => $r['statut'] ?? 'en_attente',
-                'actes'   => $actes,
+                'actes'   => $actesByFacture[$id] ?? [],
             ];
         }
 
@@ -66,6 +75,7 @@ if ($pdo) {
         exit;
     } catch (Exception $e) {
         // Base indisponible ou schéma incomplet → repli sur les données démo.
+        error_log('[kondjipro] factures list: ' . $e->getMessage());
     }
 }
 
