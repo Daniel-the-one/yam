@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "KondjiPro API (Laravel)",
-    "description": "Collection de test pour toute l'API KondjiPro (api/ Laravel 13).\n\nORDRE D'EXÉCUTION : les dossiers sont numérotés et s'exécutent de haut en bas. Les requêtes s'enchaînent (un login fournit le jeton utilisé plus bas), donc ne lance pas une requête isolée au milieu.\n\nPRÉREQUIS :\n  1. php artisan migrate\n  2. php artisan yam:seed-demo   (crée un patient, un médecin, un patientApprovisionné)\n  3. php artisan serve --host=127.0.0.1 --port=8081\n  4. sélectionner l'environnement `KondjiPro Local` avant d'exécuter la suite\n\nDans Postman : importer la collection, puis l'environnement `KondjiPro_Local.postman_environment.json`, puis « Run collection ».\n\nLes requêtes POST utilisent Body > form-data. Les valeurs de téléphone/montant à fournir sont laissées vides ; les valeurs stables et variables générées restent préremplies.\n\nLIMITE CONNUE : le compte médecin ne peut PAS être créé par l'API (register force role=patient). Sans le seeder, les 6 endpoints d'appels sont intestables. Cette limite est volontairement documentée par un test.",
+    "description": "Collection de test pour toute l'API KondjiPro (api/ Laravel 13).\n\nORDRE D'EXÉCUTION : les dossiers sont numérotés et s'exécutent de haut en bas. Les requêtes s'enchaînent (un login fournit le jeton utilisé plus bas), donc ne lance pas une requête isolée au milieu.\n\nPRÉREQUIS :\n  1. php artisan migrate\n  2. php artisan yam:seed-demo   (crée un patient, un médecin, un patientApprovisionné)\n  3. php artisan serve --host=127.0.0.1 --port=8081\n  4. sélectionner l'environnement `KondjiPro Local` avant d'exécuter la suite\n\nENVIRONNEMENTS : la variable `baseUrl` de la collection vaut par défaut le serveur local (http://127.0.0.1:8081). Un Run sans environnement reste donc en local. La production (`https://yam.mdkrlabs.dev`) ne peut être ciblée qu'en important `KondjiPro_Production.postman_environment.json`.\n\nDans Postman : importer la collection, puis l'environnement `KondjiPro_Local.postman_environment.json`, puis « Run collection ».\n\nLes requêtes POST utilisent Body > form-data. Les valeurs de téléphone/montant à fournir sont laissées vides ; les valeurs stables et variables générées restent préremplies.\n\nDOSSIER 09 — SÉCURITÉ : les routes `/api/demo/v1/*` sont protégées par le middleware `demo.auth` (jeton de session démo créé en 00 — Prérequis) : sans jeton, ou avec un jeton falsifié, elles répondent 401. Ces 401 sont assertés ici, PLUS le 401 Sanctum des vraies routes `/api/v1/*` (wallet, appels, contacts, devices, call) appelées sans jeton.\n\nLIMITE CONNUE : le compte médecin ne peut PAS être créé par l'API (register force role=patient). Sans le seeder, les 6 endpoints d'appels sont intestables. Cette limite est volontairement documentée par un test.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -17,39 +17,39 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": "https://yam.mdkrlabs.dev",
+      "value": "http://127.0.0.1:8081",
       "type": "string",
-      "description": "URL de production Yam. Pour lancer les tests automatisés, active plutôt l'environnement KondjiPro Local."
+      "description": "Serveur LOCAL par défaut (php artisan serve --port=8081). Choisi exprès pour qu'un « Run collection » sans environnement n'atteigne JAMAIS la production. Pour la prod, importer l'environnement KondjiPro_Production."
     },
     {
       "key": "demoPassword",
-      "value": "",
+      "value": "DemoPass123!",
       "type": "string",
-      "description": "Mot de passe du compte de test (fourni dans l'environnement local uniquement)."
+      "description": "Mot de passe des comptes de démonstration locaux (identique à celui imprimé par yam:seed-demo)."
     },
     {
       "key": "phoneApprovisionne",
-      "value": "",
+      "value": "+228900000003",
       "type": "string",
-      "description": "Numéro du patient approvisionné ; vide en production, fourni dans l'environnement local de test."
+      "description": "Numéro du patient approvisionné (compte créé par yam:seed-demo). Surchargeable par l'environnement."
     },
     {
       "key": "phoneMedecin",
-      "value": "",
+      "value": "+228900000002",
       "type": "string",
-      "description": "Numéro du médecin ; vide en production, fourni dans l'environnement local de test."
+      "description": "Numéro du médecin (yam:seed-demo). Surchargeable par l'environnement."
     },
     {
       "key": "phonePatient",
-      "value": "",
+      "value": "+228900000001",
       "type": "string",
-      "description": "Numéro du patient ; vide en production, fourni dans l'environnement local de test."
+      "description": "Numéro du patient à solde 0 (yam:seed-demo). Surchargeable par l'environnement."
     },
     {
       "key": "siteIdCinetPay",
-      "value": "",
+      "value": "site-de-test",
       "type": "string",
-      "description": "site_id CinetPay ; à définir selon l'environnement."
+      "description": "site_id CinetPay de test (environnement local)."
     },
     {
       "key": "phoneFree",
@@ -176,6 +176,18 @@
       "value": "",
       "type": "string",
       "description": "Rempli par POST /devices/register, consommé par DELETE."
+    },
+    {
+      "key": "tokenDemo",
+      "value": "",
+      "type": "string",
+      "description": "Rempli par « session démo (envoyeur) » en 00 — Prérequis. Requis par toute route /api/demo/v1."
+    },
+    {
+      "key": "tokenDemo2",
+      "value": "",
+      "type": "string",
+      "description": "Rempli par « session démo (destinataire) » en 00 — Prérequis. Deuxième compte pour les transferts."
     }
   ],
   "item": [
@@ -219,6 +231,134 @@
           ]
         },
         {
+          "name": "POST /api/demo/v1/auth/login — session démo (envoyeur)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/demo/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "demo",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Crée une SESSION de démonstration (compte invité isolé, tables dédiées). Sans ce jeton, toute route /api/demo/v1 protégée renvoie 401 « Jeton de démonstration requis ». Ce jeton ne donne accès à AUCUN compte réel et n'est jamais accepté par auth:sanctum.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenDemo}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 — session démo créée', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('marquée démo', () => pm.expect(j.demo).to.eql(true));",
+                  "pm.test('jeton de session renvoyé', () => pm.expect(j.data.token).to.be.a('string').and.not.empty);",
+                  "pm.collectionVariables.set('tokenDemo', j.data.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /api/demo/v1/auth/login — session démo (destinataire)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/demo/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "demo",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Crée une SESSION de démonstration (compte invité isolé, tables dédiées). Sans ce jeton, toute route /api/demo/v1 protégée renvoie 401 « Jeton de démonstration requis ». Ce jeton ne donne accès à AUCUN compte réel et n'est jamais accepté par auth:sanctum.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenDemo}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 — session démo créée', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('marquée démo', () => pm.expect(j.demo).to.eql(true));",
+                  "pm.test('jeton de session renvoyé', () => pm.expect(j.data.token).to.be.a('string').and.not.empty);",
+                  "pm.collectionVariables.set('tokenDemo2', j.data.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "GET /config (public)",
           "request": {
             "method": "GET",
@@ -256,6 +396,51 @@
                   "});"
                 ]
               }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 — exemple de réponse (capture locale)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/config",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "config"
+                  ]
+                },
+                "description": "Config publique servie à l'app mobile (versions, seuils, feature flags).",
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"app\":{\"name\":\"Laravel\"},\"pusher\":{\"app_key\":\"3db783706efc3d236b8a\",\"cluster\":\"eu\"},\"turn\":{\"url\":\"turn:openrelay.metered.ca:80,turn:openrelay.metered.ca:443?transport=tcp,turns:openrelay.metered.ca:443?transport=tcp\",\"username\":\"openrelay\",\"credential\":\"openrelay\"},\"ice_servers\":[{\"urls\":[\"stun:stun.l.google.com:19302\",\"stun:stun1.l.google.com:19302\",\"stun:stun2.l.google.com:19302\"]},{\"urls\":[\"stun:stun.cloudflare.com:3478\"]},{\"urls\":\"turn:openrelay.metered.ca:80\",\"username\":\"openrelay\",\"credential\":\"openrelay\"},{\"urls\":\"turn:openrelay.metered.ca:443?transport=tcp\",\"username\":\"openrelay\",\"credential\":\"openrelay\"},{\"urls\":\"turns:openrelay.metered.ca:443?transport=tcp\",\"username\":\"openrelay\",\"credential\":\"openrelay\"}]}",
+              "responseTime": 12
             }
           ]
         },
@@ -304,7 +489,8 @@
             }
           ]
         }
-      ]
+      ],
+      "description": "Amorçage : santé du serveur, puis les DEUX sessions démo (envoyeur / destinataire) utilisées par tous les dossiers qui ciblent /api/demo/v1. Sans elles, les dossiers 05 à 09 reçoivent 401."
     },
     {
       "name": "01 — Authentification",
@@ -389,6 +575,96 @@
                   "});"
                 ]
               }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 — exemple de réponse (capture locale)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
+                },
+                "description": "Compte créé par `php artisan yam:seed-demo`. C'est celui qui a 50 000 F : c'est le seul moyen de tester les endpoints qui débloquent de l'argent.",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenApprovisionne}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "phone_number",
+                      "value": "{{phoneApprovisionne}}",
+                      "type": "text",
+                      "enabled": true
+                    },
+                    {
+                      "key": "password",
+                      "value": "{{demoPassword}}",
+                      "type": "text",
+                      "enabled": true
+                    },
+                    {
+                      "key": "device_id",
+                      "value": "postman-appro",
+                      "type": "text",
+                      "enabled": true
+                    },
+                    {
+                      "key": "platform",
+                      "value": "web",
+                      "type": "text",
+                      "enabled": true
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "X-RateLimit-Limit",
+                  "value": "10"
+                },
+                {
+                  "key": "X-RateLimit-Remaining",
+                  "value": "7"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"data\":{\"token\":\"83|EzSVamCK0FB3sE782VBIqgpVMUUeMJzF2nlh1aeYbb513f25\",\"user\":{\"id\":45,\"name\":\"Demo Patient Approvisionne\",\"username\":\"demo_patient_approvisionne_demo\",\"phone_number\":\"+228900000003\",\"phone_verified\":true,\"role\":\"patient\"},\"device\":{\"id\":64,\"device_id\":\"postman-appro\",\"label\":\"Web\",\"platform\":\"web\",\"last_seen_at\":\"2026-10-07T11:35:17.000000Z\"}}}",
+              "responseTime": 258
             }
           ]
         },
@@ -644,6 +920,102 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "201 — exemple de réponse (capture locale)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "register"
+                  ]
+                },
+                "description": "Inscription classique. Le numéro est généré à chaque exécution pour ne jamais entrer en collision avec un compte existant.",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenApprovisionne}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "name",
+                      "value": "Postman Test",
+                      "type": "text",
+                      "enabled": true
+                    },
+                    {
+                      "key": "phone_number",
+                      "value": "{{phoneFree}}",
+                      "type": "text",
+                      "enabled": true
+                    },
+                    {
+                      "key": "password",
+                      "value": "{{demoPassword}}",
+                      "type": "text",
+                      "enabled": true
+                    },
+                    {
+                      "key": "device_id",
+                      "value": "postman-register-{{$randomInt}}",
+                      "type": "text",
+                      "enabled": true
+                    },
+                    {
+                      "key": "platform",
+                      "value": "web",
+                      "type": "text",
+                      "enabled": true
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "X-RateLimit-Limit",
+                  "value": "10"
+                },
+                {
+                  "key": "X-RateLimit-Remaining",
+                  "value": "6"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"data\":{\"token\":\"84|8tNyMcaffIwaZqpwyD7avYcjyi8hy7Yc08tLYwp40bd5c38e\",\"user\":{\"id\":58,\"name\":\"Postman Test\",\"username\":\"Postman Test-i8gda\",\"phone_number\":\"+22894258192\",\"phone_verified\":false,\"role\":\"patient\"},\"device\":{\"id\":65,\"device_id\":\"postman-register-{{$randomInt}}\",\"label\":\"Web\",\"platform\":\"web\",\"last_seen_at\":\"2026-10-07T11:35:18.000000Z\"}}}",
+              "responseTime": 256
+            }
           ]
         },
         {
@@ -834,7 +1206,7 @@
           ]
         },
         {
-          "name": "POST /auth/login — mauvais mot de passe (401)",
+          "name": "POST /auth/login — mauvais mot de passe (422)",
           "request": {
             "method": "POST",
             "header": [
@@ -855,7 +1227,7 @@
                 "login"
               ]
             },
-            "description": "Cas d'erreur : identifiants invalides.\n\nL'API renvoie 422 (ValidationException sur phone_number) et non 401 : le contrat est en place depuis le début, on documente le comportement réel.\n\nLe message est volontairement le même que le numéro existe ou non (\"Identifiants incorrects.\") : impossible d'énumérer les comptes.",
+            "description": "Cas d'erreur : identifiants invalides.\n\nL'API renvoie 422 (ValidationException sur phone_number) et non 401 : le contrat est en place depuis le début, on documente le comportement réel.\n\nLe message est volontairement le même que le numéro existe ou non (\"Identifiants incorrects.\") : impossible d'énumérer les comptes.\n\nCORRIGÉ : le nom annonçait 401, l'API renvoie réellement 422 (ValidationException sur phone_number) — le test assertait déjà 422.",
             "auth": {
               "type": "noauth"
             },
@@ -892,6 +1264,77 @@
                   "});"
                 ]
               }
+            }
+          ],
+          "response": [
+            {
+              "name": "422 — exemple de réponse (capture locale)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
+                },
+                "description": "Cas d'erreur : identifiants invalides.\n\nL'API renvoie 422 (ValidationException sur phone_number) et non 401 : le contrat est en place depuis le début, on documente le comportement réel.\n\nLe message est volontairement le même que le numéro existe ou non (\"Identifiants incorrects.\") : impossible d'énumérer les comptes.",
+                "auth": {
+                  "type": "noauth"
+                },
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "phone_number",
+                      "value": "{{phoneApprovisionne}}",
+                      "type": "text",
+                      "enabled": true
+                    },
+                    {
+                      "key": "password",
+                      "value": "MauvaisMotDePasse123",
+                      "type": "text",
+                      "enabled": true
+                    }
+                  ]
+                }
+              },
+              "status": "Error",
+              "code": 422,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "X-RateLimit-Limit",
+                  "value": "10"
+                },
+                {
+                  "key": "X-RateLimit-Remaining",
+                  "value": "5"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"message\":\"Identifiants incorrects.\",\"errors\":{\"phone_number\":[\"Identifiants incorrects.\"]}}",
+              "responseTime": 239
             }
           ]
         }
@@ -947,6 +1390,59 @@
                   "});"
                 ]
               }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 — exemple de réponse (capture locale)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/users/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "users",
+                    "me"
+                  ]
+                },
+                "description": "Profil de l'utilisateur authentifié. Sert aussi à vérifier que le jeton est encore valide.",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenApprovisionne}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"data\":{\"id\":45,\"name\":\"Demo Patient Approvisionne\",\"username\":\"demo_patient_approvisionne_demo\",\"phone_number\":\"+228900000003\",\"phone_verified\":true,\"role\":\"patient\",\"devices_count\":1}}",
+              "responseTime": 23
             }
           ]
         }
@@ -1012,6 +1508,69 @@
                   "});"
                 ]
               }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 — exemple de réponse (capture locale)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/users/search?q=Demo&limit=10",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "users",
+                    "search"
+                  ],
+                  "query": [
+                    {
+                      "key": "q",
+                      "value": "Demo"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
+                },
+                "description": "Recherche d'utilisateurs. `q` fait au minimum 2 caractères (422 en dessous).",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenApprovisionne}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"data\":[{\"id\":44,\"phone_number\":\"+228900000002\",\"name\":\"Demo Medecin\",\"username\":\"demo_medecin_demo\",\"phone_verified\":true,\"role\":\"medecin\"},{\"id\":43,\"phone_number\":\"+228900000001\",\"name\":\"Demo Patient\",\"username\":\"demo_patient_demo\",\"phone_verified\":true,\"role\":\"patient\"}]}",
+              "responseTime": 8
             }
           ]
         },
@@ -1166,6 +1725,58 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "200 — exemple de réponse (capture locale)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/devices",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "devices"
+                  ]
+                },
+                "description": "Appareils enregistrés pour l'utilisateur courant.\n\nC'est ici qu'on récupère le device_id qui alimente la suppression : l'enregistrement est un feu-et-forgat qui ne renvoie que { ok: true }.",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenApprovisionne}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"devices\":[{\"id\":64,\"label\":\"Web\",\"device_id\":\"postman-appro\",\"platform\":\"web\",\"last_seen_at\":\"2026-10-07 11:35:17\"}]}",
+              "responseTime": 12
+            }
           ]
         },
         {
@@ -1292,7 +1903,7 @@
       "name": "05 — Wallet",
       "item": [
         {
-          "name": "Démo statique — GET /wallet (crée le wallet)",
+          "name": "Démo — GET /wallet (crée le wallet)",
           "request": {
             "method": "GET",
             "header": [
@@ -1313,9 +1924,16 @@
                 "wallet"
               ]
             },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
+            "description": "Route /api/demo/v1 : jeton de SESSION démo requis (voir « session démo » en 00 — Prérequis). Données fictives isolées dans des tables dédiées : aucun compte réel, aucun paiement ni appel réel.",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenDemo}}",
+                  "type": "string"
+                }
+              ]
             }
           },
           "event": [
@@ -1324,32 +1942,78 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
-                  "    pm.expect([200, 201]).to.include(pm.response.code);",
-                  "});",
-                  "const jsonData = pm.response.json();",
-                  "pm.test('La réponse est explicitement marquée comme démo', function() {",
-                  "    pm.expect(jsonData.demo).to.eql(true);",
-                  "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
-                  "if (jsonData.information && jsonData.information.reference) {",
-                  "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
-                  "}",
-                  "if (jsonData.data && jsonData.data.appel_id) {",
-                  "    const nom = pm.info.requestName;",
-                  "    const variable = nom.includes('médecin → patient') ? 'appelIdMedecin' : 'appelId';",
-                  "    pm.collectionVariables.set(variable, jsonData.data.appel_id);",
-                  "}"
+                  "pm.test('200 — wallet démo de l\\'envoyeur', () => pm.response.to.have.status(200));",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('marquée démo', () => pm.expect(jsonData.demo).to.eql(true));",
+                  "pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);"
                 ]
               }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 — exemple de réponse (capture locale)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/demo/v1/wallet",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "demo",
+                    "v1",
+                    "wallet"
+                  ]
+                },
+                "description": "Route /api/demo/v1 : jeton de SESSION démo requis (voir « session démo » en 00 — Prérequis). Données fictives isolées dans des tables dédiées : aucun compte réel, aucun paiement ni appel réel.",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenDemo}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "X-RateLimit-Limit",
+                  "value": "60"
+                },
+                {
+                  "key": "X-RateLimit-Remaining",
+                  "value": "54"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"demo\":true,\"status\":\"000\",\"message\":\"Portefeuille virtuel de d\\u00e9monstration.\",\"wallet\":{\"wallet_id\":\"TGWVUVHPVFEQNCNO\",\"key_wallet\":\"\",\"solde\":\"50 000 Fcfa\",\"solde_raw\":50000,\"devise\":\"XOF\",\"devise_symbol\":\"Fcfa\",\"devise_wallet\":\"XOF\",\"symbole_wallet\":\"Fcfa\",\"is_default\":1,\"date_create\":\"07\\/10\\/2026\"},\"membre\":{\"nom\":\"Visiteur d\\u00e9mo\",\"username\":\"\",\"email\":\"\",\"kyc_valide\":0,\"avatar\":\"\"},\"stats_mois\":{\"periode\":\"October 2026\",\"depenses\":\"0 Fcfa\",\"depenses_raw\":0,\"recus\":\"0 Fcfa\",\"recus_raw\":0,\"nb_transactions\":0},\"dernieres_transactions\":[],\"epargnes\":[],\"nb_epargnes\":0,\"assurances\":[],\"nb_assurances\":0}",
+              "responseTime": 29
             }
           ]
         },
         {
-          "name": "Démo statique — GET /wallet (patient, crée son wallet)",
+          "name": "Démo — GET /wallet (patient, crée son wallet)",
           "request": {
             "method": "GET",
             "header": [
@@ -1370,9 +2034,16 @@
                 "wallet"
               ]
             },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
+            "description": "Route /api/demo/v1 : jeton de SESSION démo requis (voir « session démo » en 00 — Prérequis). Données fictives isolées dans des tables dédiées : aucun compte réel, aucun paiement ni appel réel.",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenDemo2}}",
+                  "type": "string"
+                }
+              ]
             }
           },
           "event": [
@@ -1381,32 +2052,17 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
-                  "    pm.expect([200, 201]).to.include(pm.response.code);",
-                  "});",
-                  "const jsonData = pm.response.json();",
-                  "pm.test('La réponse est explicitement marquée comme démo', function() {",
-                  "    pm.expect(jsonData.demo).to.eql(true);",
-                  "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
-                  "if (jsonData.information && jsonData.information.reference) {",
-                  "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
-                  "}",
-                  "if (jsonData.data && jsonData.data.appel_id) {",
-                  "    const nom = pm.info.requestName;",
-                  "    const variable = nom.includes('médecin → patient') ? 'appelIdMedecin' : 'appelId';",
-                  "    pm.collectionVariables.set(variable, jsonData.data.appel_id);",
-                  "}"
+                  "pm.test('200 — wallet démo du destinataire', () => pm.response.to.have.status(200));",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('marquée démo', () => pm.expect(jsonData.demo).to.eql(true));",
+                  "pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);"
                 ]
               }
             }
           ]
         },
         {
-          "name": "Démo statique — POST /wallet/recharge (avec Idempotency-Key)",
+          "name": "Démo — POST /wallet/recharge (avec Idempotency-Key)",
           "request": {
             "method": "POST",
             "header": [
@@ -1433,22 +2089,29 @@
                 "recharge"
               ]
             },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
+            "description": "Route /api/demo/v1 : jeton de SESSION démo requis (voir « session démo » en 00 — Prérequis). Données fictives isolées dans des tables dédiées : aucun compte réel, aucun paiement ni appel réel.",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenDemo}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "formdata",
               "formdata": [
                 {
                   "key": "montant",
-                  "value": "",
+                  "value": "5000",
                   "type": "text",
                   "enabled": true
                 },
                 {
                   "key": "phone_number",
-                  "value": "",
+                  "value": "{{phoneApprovisionne}}",
                   "type": "text",
                   "enabled": true
                 }
@@ -1470,17 +2133,13 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
+                  "pm.test('200/201 — la route démo répond', function() {",
                   "    pm.expect([200, 201]).to.include(pm.response.code);",
                   "});",
                   "const jsonData = pm.response.json();",
                   "pm.test('La réponse est explicitement marquée comme démo', function() {",
                   "    pm.expect(jsonData.demo).to.eql(true);",
                   "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
                   "if (jsonData.information && jsonData.information.reference) {",
                   "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
                   "}",
@@ -1492,170 +2151,94 @@
                 ]
               }
             }
-          ]
-        },
-        {
-          "name": "Démo statique — POST /wallet/recharge — rejeu de la MÊME clé",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
+          ],
+          "response": [
+            {
+              "name": "201 — exemple de réponse (capture locale)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Idempotency-Key",
+                    "value": "{{idemRecharge}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/demo/v1/wallet/recharge",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "demo",
+                    "v1",
+                    "wallet",
+                    "recharge"
+                  ]
+                },
+                "description": "Route /api/demo/v1 : jeton de SESSION démo requis (voir « session démo » en 00 — Prérequis). Données fictives isolées dans des tables dédiées : aucun compte réel, aucun paiement ni appel réel.",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenDemo}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "montant",
+                      "value": "5000",
+                      "type": "text",
+                      "enabled": true
+                    },
+                    {
+                      "key": "phone_number",
+                      "value": "{{phoneApprovisionne}}",
+                      "type": "text",
+                      "enabled": true
+                    }
+                  ]
+                }
               },
-              {
-                "key": "Idempotency-Key",
-                "value": "{{idemRecharge}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/demo/v1/wallet/recharge",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "demo",
-                "v1",
-                "wallet",
-                "recharge"
-              ]
-            },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
-            "auth": {
-              "type": "noauth"
-            },
-            "body": {
-              "mode": "formdata",
-              "formdata": [
+              "status": "OK",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
                 {
-                  "key": "montant",
-                  "value": "",
-                  "type": "text",
-                  "enabled": true
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
                 },
                 {
-                  "key": "phone_number",
-                  "value": "",
-                  "type": "text",
-                  "enabled": true
-                }
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
-                  "    pm.expect([200, 201]).to.include(pm.response.code);",
-                  "});",
-                  "const jsonData = pm.response.json();",
-                  "pm.test('La réponse est explicitement marquée comme démo', function() {",
-                  "    pm.expect(jsonData.demo).to.eql(true);",
-                  "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
-                  "if (jsonData.information && jsonData.information.reference) {",
-                  "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
-                  "}",
-                  "if (jsonData.data && jsonData.data.appel_id) {",
-                  "    const nom = pm.info.requestName;",
-                  "    const variable = nom.includes('médecin → patient') ? 'appelIdMedecin' : 'appelId';",
-                  "    pm.collectionVariables.set(variable, jsonData.data.appel_id);",
-                  "}"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Démo statique — POST /wallet/recharge — clé invalide (409)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Idempotency-Key",
-                "value": "court",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/demo/v1/wallet/recharge",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "demo",
-                "v1",
-                "wallet",
-                "recharge"
-              ]
-            },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
-            "auth": {
-              "type": "noauth"
-            },
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "montant",
-                  "value": "",
-                  "type": "text",
-                  "enabled": true
+                  "key": "Content-Type",
+                  "value": "application/json"
                 },
                 {
-                  "key": "phone_number",
-                  "value": "",
-                  "type": "text",
-                  "enabled": true
+                  "key": "X-RateLimit-Limit",
+                  "value": "60"
+                },
+                {
+                  "key": "X-RateLimit-Remaining",
+                  "value": "53"
                 }
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
-                  "    pm.expect([200, 201]).to.include(pm.response.code);",
-                  "});",
-                  "const jsonData = pm.response.json();",
-                  "pm.test('La réponse est explicitement marquée comme démo', function() {",
-                  "    pm.expect(jsonData.demo).to.eql(true);",
-                  "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
-                  "if (jsonData.information && jsonData.information.reference) {",
-                  "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
-                  "}",
-                  "if (jsonData.data && jsonData.data.appel_id) {",
-                  "    const nom = pm.info.requestName;",
-                  "    const variable = nom.includes('médecin → patient') ? 'appelIdMedecin' : 'appelId';",
-                  "    pm.collectionVariables.set(variable, jsonData.data.appel_id);",
-                  "}"
-                ]
-              }
+              ],
+              "cookie": [],
+              "body": "{\"demo\":true,\"status\":\"000\",\"message\":\"Recharge virtuelle cr\\u00e9\\u00e9e. Confirmez-la avec \\/wallet\\/recharge\\/notify.\",\"information\":{\"reference\":\"DEMO-01M4B2AZM7Y8FY82ANK13JSCHG\",\"status\":1,\"status_show\":\"En cours\",\"amount\":\"+5 000 Fcfa\",\"fees\":\"500 Fcfa\",\"total_amount\":\"5 500 Fcfa\",\"new_balance\":\"-\",\"devise\":\"XOF\",\"payment\":{\"mode\":\"demo\",\"provider\":\"demo\",\"payment_token\":\"\",\"payment_url\":\"\",\"must_be_redirected\":false}}}",
+              "responseTime": 20
             }
           ]
         },
         {
-          "name": "Démo statique — GET /wallet/transactions",
+          "name": "Démo — GET /wallet/transactions",
           "request": {
             "method": "GET",
             "header": [
@@ -1687,9 +2270,16 @@
                 }
               ]
             },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
+            "description": "Route /api/demo/v1 : jeton de SESSION démo requis (voir « session démo » en 00 — Prérequis). Données fictives isolées dans des tables dédiées : aucun compte réel, aucun paiement ni appel réel.",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenDemo}}",
+                  "type": "string"
+                }
+              ]
             }
           },
           "event": [
@@ -1698,17 +2288,13 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
+                  "pm.test('200/201 — la route démo répond', function() {",
                   "    pm.expect([200, 201]).to.include(pm.response.code);",
                   "});",
                   "const jsonData = pm.response.json();",
                   "pm.test('La réponse est explicitement marquée comme démo', function() {",
                   "    pm.expect(jsonData.demo).to.eql(true);",
                   "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
                   "if (jsonData.information && jsonData.information.reference) {",
                   "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
                   "}",
@@ -1723,7 +2309,7 @@
           ]
         },
         {
-          "name": "Démo statique — POST /wallet/transfert",
+          "name": "Démo — POST /wallet/transfert",
           "request": {
             "method": "POST",
             "header": [
@@ -1750,16 +2336,23 @@
                 "transfert"
               ]
             },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
+            "description": "Route /api/demo/v1 : jeton de SESSION démo requis (voir « session démo » en 00 — Prérequis). Données fictives isolées dans des tables dédiées : aucun compte réel, aucun paiement ni appel réel.",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenDemo}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "formdata",
               "formdata": [
                 {
                   "key": "montant",
-                  "value": "",
+                  "value": "100",
                   "type": "text",
                   "enabled": true
                 },
@@ -1787,17 +2380,13 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
+                  "pm.test('200/201 — la route démo répond', function() {",
                   "    pm.expect([200, 201]).to.include(pm.response.code);",
                   "});",
                   "const jsonData = pm.response.json();",
                   "pm.test('La réponse est explicitement marquée comme démo', function() {",
                   "    pm.expect(jsonData.demo).to.eql(true);",
                   "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
                   "if (jsonData.information && jsonData.information.reference) {",
                   "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
                   "}",
@@ -1812,7 +2401,7 @@
           ]
         },
         {
-          "name": "Démo statique — GET /wallet (après transfert) — conservation de l'argent",
+          "name": "Démo — GET /wallet (après transfert) — conservation de l'argent",
           "request": {
             "method": "GET",
             "header": [
@@ -1833,9 +2422,16 @@
                 "wallet"
               ]
             },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
+            "description": "Route /api/demo/v1 : jeton de SESSION démo requis (voir « session démo » en 00 — Prérequis). Données fictives isolées dans des tables dédiées : aucun compte réel, aucun paiement ni appel réel.",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenDemo}}",
+                  "type": "string"
+                }
+              ]
             }
           },
           "event": [
@@ -1844,17 +2440,13 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
+                  "pm.test('200/201 — la route démo répond', function() {",
                   "    pm.expect([200, 201]).to.include(pm.response.code);",
                   "});",
                   "const jsonData = pm.response.json();",
                   "pm.test('La réponse est explicitement marquée comme démo', function() {",
                   "    pm.expect(jsonData.demo).to.eql(true);",
                   "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
                   "if (jsonData.information && jsonData.information.reference) {",
                   "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
                   "}",
@@ -1869,7 +2461,7 @@
           ]
         },
         {
-          "name": "Démo statique — GET /wallet du destinataire — crédit exact",
+          "name": "Démo — GET /wallet du destinataire — crédit exact",
           "request": {
             "method": "GET",
             "header": [
@@ -1890,9 +2482,16 @@
                 "wallet"
               ]
             },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
+            "description": "Route /api/demo/v1 : jeton de SESSION démo requis (voir « session démo » en 00 — Prérequis). Données fictives isolées dans des tables dédiées : aucun compte réel, aucun paiement ni appel réel.",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenDemo2}}",
+                  "type": "string"
+                }
+              ]
             }
           },
           "event": [
@@ -1901,17 +2500,13 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
+                  "pm.test('200/201 — la route démo répond', function() {",
                   "    pm.expect([200, 201]).to.include(pm.response.code);",
                   "});",
                   "const jsonData = pm.response.json();",
                   "pm.test('La réponse est explicitement marquée comme démo', function() {",
                   "    pm.expect(jsonData.demo).to.eql(true);",
                   "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
                   "if (jsonData.information && jsonData.information.reference) {",
                   "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
                   "}",
@@ -1926,7 +2521,7 @@
           ]
         },
         {
-          "name": "Démo statique — POST /wallet/transfert — solde insuffisant (402)",
+          "name": "Démo — POST /wallet/transfert — solde insuffisant (402)",
           "request": {
             "method": "POST",
             "header": [
@@ -1953,96 +2548,23 @@
                 "transfert"
               ]
             },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
+            "description": "Route /api/demo/v1 : jeton de SESSION démo requis (voir « session démo » en 00 — Prérequis). Données fictives isolées dans des tables dédiées : aucun compte réel, aucun paiement ni appel réel.\n\nATTENTION : la couche démo n'implémente PAS l'idempotence (pas de 409) et, pour les appels, pas de cas d'erreur (402/409/422/403). Ces chemins n'existent que sur l'API réelle /api/v1 (wallet et appels), non couverte par cette collection.",
             "auth": {
-              "type": "noauth"
-            },
-            "body": {
-              "mode": "formdata",
-              "formdata": [
+              "type": "bearer",
+              "bearer": [
                 {
-                  "key": "montant",
-                  "value": "",
-                  "type": "text",
-                  "enabled": true
-                },
-                {
-                  "key": "destinataire_wallet_id",
-                  "value": "{{walletApprovisionne}}",
-                  "type": "text",
-                  "enabled": true
+                  "key": "token",
+                  "value": "{{tokenDemo}}",
+                  "type": "string"
                 }
               ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
-                  "    pm.expect([200, 201]).to.include(pm.response.code);",
-                  "});",
-                  "const jsonData = pm.response.json();",
-                  "pm.test('La réponse est explicitement marquée comme démo', function() {",
-                  "    pm.expect(jsonData.demo).to.eql(true);",
-                  "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
-                  "if (jsonData.information && jsonData.information.reference) {",
-                  "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
-                  "}",
-                  "if (jsonData.data && jsonData.data.appel_id) {",
-                  "    const nom = pm.info.requestName;",
-                  "    const variable = nom.includes('médecin → patient') ? 'appelIdMedecin' : 'appelId';",
-                  "    pm.collectionVariables.set(variable, jsonData.data.appel_id);",
-                  "}"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Démo statique — POST /wallet/transfert — même clé, montant différent (409)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Idempotency-Key",
-                "value": "{{idemTransfert}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/demo/v1/wallet/transfert",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "demo",
-                "v1",
-                "wallet",
-                "transfert"
-              ]
-            },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
-            "auth": {
-              "type": "noauth"
             },
             "body": {
               "mode": "formdata",
               "formdata": [
                 {
                   "key": "montant",
-                  "value": "",
+                  "value": "1000000",
                   "type": "text",
                   "enabled": true
                 },
@@ -2061,32 +2583,19 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
-                  "    pm.expect([200, 201]).to.include(pm.response.code);",
-                  "});",
-                  "const jsonData = pm.response.json();",
-                  "pm.test('La réponse est explicitement marquée comme démo', function() {",
-                  "    pm.expect(jsonData.demo).to.eql(true);",
-                  "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
-                  "if (jsonData.information && jsonData.information.reference) {",
-                  "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
-                  "}",
-                  "if (jsonData.data && jsonData.data.appel_id) {",
-                  "    const nom = pm.info.requestName;",
-                  "    const variable = nom.includes('médecin → patient') ? 'appelIdMedecin' : 'appelId';",
-                  "    pm.collectionVariables.set(variable, jsonData.data.appel_id);",
-                  "}"
+                  "pm.test('402 — solde démo insuffisant', () => pm.response.to.have.status(402));",
+                  "const j = pm.response.json();",
+                  "pm.test('erreur portée par le champ montant', () => pm.expect(j.errors).to.have.property('montant'));",
+                  "pm.test('pas de jeton ni de donnée réelle fuitée', () => {",
+                  "    pm.expect(pm.response.text()).to.not.include('password');",
+                  "});"
                 ]
               }
             }
           ]
         },
         {
-          "name": "Démo statique — POST /wallet/transfert — sans destinataire (422)",
+          "name": "Démo — POST /wallet/transfert — sans destinataire (422)",
           "request": {
             "method": "POST",
             "header": [
@@ -2108,16 +2617,23 @@
                 "transfert"
               ]
             },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
+            "description": "Route /api/demo/v1 : jeton de SESSION démo requis (voir « session démo » en 00 — Prérequis). Données fictives isolées dans des tables dédiées : aucun compte réel, aucun paiement ni appel réel.\n\nATTENTION : la couche démo n'implémente PAS l'idempotence (pas de 409) et, pour les appels, pas de cas d'erreur (402/409/422/403). Ces chemins n'existent que sur l'API réelle /api/v1 (wallet et appels), non couverte par cette collection.",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenDemo}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "formdata",
               "formdata": [
                 {
                   "key": "montant",
-                  "value": "",
+                  "value": "100",
                   "type": "text",
                   "enabled": true
                 }
@@ -2130,37 +2646,98 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
-                  "    pm.expect([200, 201]).to.include(pm.response.code);",
+                  "pm.test('422 — destinataire obligatoire', () => pm.response.to.have.status(422));",
+                  "const j = pm.response.json();",
+                  "pm.test('le champ fautif est nommé', () => pm.expect(j.errors).to.have.property('destinataire_wallet_id'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Démo — POST /wallet/withdraw (201, débit immédiat)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/demo/v1/wallet/withdraw",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "demo",
+                "v1",
+                "wallet",
+                "withdraw"
+              ]
+            },
+            "description": "Route /api/demo/v1 : jeton de SESSION démo requis (voir « session démo » en 00 — Prérequis). Données fictives isolées dans des tables dédiées : aucun compte réel, aucun paiement réel.\n\nRetrait virtuel : le solde virtuel est débité IMMÉDIATEMENT (contrairement à la recharge, qui reste en attente de confirmation CinetPay). Solde insuffisant → 402, montant manquant/incorrect → 422. Miroir de l'API réelle POST /api/v1/wallet/withdraw (couverte par les tests Feature du projet : tests/Feature/WalletTest.php).",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenDemo}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "montant",
+                  "value": "500",
+                  "type": "text",
+                  "enabled": true
+                },
+                {
+                  "key": "phone_number",
+                  "value": "+228900000099",
+                  "type": "text",
+                  "enabled": true
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 — le retrait démo est accepté', function() {",
+                  "    pm.expect(pm.response.code).to.eql(201);",
                   "});",
                   "const jsonData = pm.response.json();",
                   "pm.test('La réponse est explicitement marquée comme démo', function() {",
                   "    pm.expect(jsonData.demo).to.eql(true);",
                   "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
-                  "if (jsonData.information && jsonData.information.reference) {",
-                  "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
-                  "}",
-                  "if (jsonData.data && jsonData.data.appel_id) {",
-                  "    const nom = pm.info.requestName;",
-                  "    const variable = nom.includes('médecin → patient') ? 'appelIdMedecin' : 'appelId';",
-                  "    pm.collectionVariables.set(variable, jsonData.data.appel_id);",
-                  "}"
+                  "pm.test('Transaction immédiatement Réussie (status 2)', function() {",
+                  "    pm.expect(jsonData.information.status).to.eql(2);",
+                  "});",
+                  "pm.test('Solde virtuel réduit et formaté en Fcfa', function() {",
+                  "    pm.expect(jsonData.information.new_balance).to.match(/^[\\d ]+ Fcfa$/);",
+                  "});"
                 ]
               }
             }
           ]
         }
-      ]
+      ],
+      "description": "Wallet DÉMO : sessions du dossier 00, fonds virtuels (solde initial 50 000 Fcfa) stockés dans des tables dédiées, isolés des comptes réels.\n\nCouvert : consultation, recharge simulée, transfert, transactions, solde insuffisant (402), destinataire manquant (422).\nNON couvert : l'idempotence (409) — elle n'existe que sur l'API réelle `/api/v1/wallet/*`, absente de cette collection (les requêtes « même clé » renvoient donc 201 ici, c'est attendu)."
     },
     {
       "name": "06 — Webhook CinetPay",
       "item": [
         {
-          "name": "Démo statique — POST /wallet/recharge/notify — sans transaction_id",
+          "name": "Démo — POST /wallet/recharge/notify — sans transaction_id",
           "request": {
             "method": "POST",
             "header": [
@@ -2183,9 +2760,16 @@
                 "notify"
               ]
             },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
+            "description": "Route /api/demo/v1 : jeton de SESSION démo requis (voir « session démo » en 00 — Prérequis). Données fictives isolées dans des tables dédiées : aucun compte réel, aucun paiement ni appel réel.",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenDemo}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "formdata",
@@ -2217,32 +2801,16 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
-                  "    pm.expect([200, 201]).to.include(pm.response.code);",
-                  "});",
-                  "const jsonData = pm.response.json();",
-                  "pm.test('La réponse est explicitement marquée comme démo', function() {",
-                  "    pm.expect(jsonData.demo).to.eql(true);",
-                  "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
-                  "if (jsonData.information && jsonData.information.reference) {",
-                  "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
-                  "}",
-                  "if (jsonData.data && jsonData.data.appel_id) {",
-                  "    const nom = pm.info.requestName;",
-                  "    const variable = nom.includes('médecin → patient') ? 'appelIdMedecin' : 'appelId';",
-                  "    pm.collectionVariables.set(variable, jsonData.data.appel_id);",
-                  "}"
+                  "pm.test('422 — transaction_id obligatoire', () => pm.response.to.have.status(422));",
+                  "const j = pm.response.json();",
+                  "pm.test('le champ fautif est nommé', () => pm.expect(j.errors).to.have.property('transaction_id'));"
                 ]
               }
             }
           ]
         },
         {
-          "name": "Démo statique — POST /wallet/recharge/notify — transaction inconnue",
+          "name": "Démo — POST /wallet/recharge/notify — transaction inconnue",
           "request": {
             "method": "POST",
             "header": [
@@ -2265,9 +2833,16 @@
                 "notify"
               ]
             },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
+            "description": "Route /api/demo/v1 : jeton de SESSION démo requis (voir « session démo » en 00 — Prérequis). Données fictives isolées dans des tables dédiées : aucun compte réel, aucun paiement ni appel réel.",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenDemo}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "formdata",
@@ -2299,17 +2874,13 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
+                  "pm.test('200/201 — la route démo répond', function() {",
                   "    pm.expect([200, 201]).to.include(pm.response.code);",
                   "});",
                   "const jsonData = pm.response.json();",
                   "pm.test('La réponse est explicitement marquée comme démo', function() {",
                   "    pm.expect(jsonData.demo).to.eql(true);",
                   "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
                   "if (jsonData.information && jsonData.information.reference) {",
                   "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
                   "}",
@@ -2324,7 +2895,7 @@
           ]
         },
         {
-          "name": "Démo statique — POST /wallet/recharge/notify — montant forgé",
+          "name": "Démo — POST /wallet/recharge/notify — montant forgé",
           "request": {
             "method": "POST",
             "header": [
@@ -2347,9 +2918,16 @@
                 "notify"
               ]
             },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
+            "description": "Route /api/demo/v1 : jeton de SESSION démo requis (voir « session démo » en 00 — Prérequis). Données fictives isolées dans des tables dédiées : aucun compte réel, aucun paiement ni appel réel.",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenDemo}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "formdata",
@@ -2387,17 +2965,13 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
+                  "pm.test('200/201 — la route démo répond', function() {",
                   "    pm.expect([200, 201]).to.include(pm.response.code);",
                   "});",
                   "const jsonData = pm.response.json();",
                   "pm.test('La réponse est explicitement marquée comme démo', function() {",
                   "    pm.expect(jsonData.demo).to.eql(true);",
                   "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
                   "if (jsonData.information && jsonData.information.reference) {",
                   "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
                   "}",
@@ -2412,7 +2986,7 @@
           ]
         },
         {
-          "name": "Démo statique — POST /wallet/recharge/notify — sans code ni status",
+          "name": "Démo — POST /wallet/recharge/notify — sans code ni status",
           "request": {
             "method": "POST",
             "header": [
@@ -2435,9 +3009,16 @@
                 "notify"
               ]
             },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
+            "description": "Route /api/demo/v1 : jeton de SESSION démo requis (voir « session démo » en 00 — Prérequis). Données fictives isolées dans des tables dédiées : aucun compte réel, aucun paiement ni appel réel.",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenDemo}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "formdata",
@@ -2469,17 +3050,13 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
+                  "pm.test('200/201 — la route démo répond', function() {",
                   "    pm.expect([200, 201]).to.include(pm.response.code);",
                   "});",
                   "const jsonData = pm.response.json();",
                   "pm.test('La réponse est explicitement marquée comme démo', function() {",
                   "    pm.expect(jsonData.demo).to.eql(true);",
                   "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
                   "if (jsonData.information && jsonData.information.reference) {",
                   "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
                   "}",
@@ -2494,7 +3071,7 @@
           ]
         },
         {
-          "name": "Démo statique — POST /wallet/recharge/notify — site_id inconnu",
+          "name": "Démo — POST /wallet/recharge/notify — site_id inconnu",
           "request": {
             "method": "POST",
             "header": [
@@ -2517,9 +3094,16 @@
                 "notify"
               ]
             },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
+            "description": "Route /api/demo/v1 : jeton de SESSION démo requis (voir « session démo » en 00 — Prérequis). Données fictives isolées dans des tables dédiées : aucun compte réel, aucun paiement ni appel réel.",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenDemo}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "formdata",
@@ -2557,17 +3141,13 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
+                  "pm.test('200/201 — la route démo répond', function() {",
                   "    pm.expect([200, 201]).to.include(pm.response.code);",
                   "});",
                   "const jsonData = pm.response.json();",
                   "pm.test('La réponse est explicitement marquée comme démo', function() {",
                   "    pm.expect(jsonData.demo).to.eql(true);",
                   "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
                   "if (jsonData.information && jsonData.information.reference) {",
                   "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
                   "}",
@@ -2587,7 +3167,7 @@
       "name": "07 — Appels payants",
       "item": [
         {
-          "name": "Démo statique — POST /appels/init (patient → médecin)",
+          "name": "Démo — POST /appels/init (patient → médecin)",
           "request": {
             "method": "POST",
             "header": [
@@ -2609,9 +3189,16 @@
                 "init"
               ]
             },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
+            "description": "Route /api/demo/v1 : jeton de SESSION démo requis (voir « session démo » en 00 — Prérequis). Données fictives isolées dans des tables dédiées : aucun compte réel, aucun paiement ni appel réel.",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenDemo}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "formdata",
@@ -2631,17 +3218,13 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
+                  "pm.test('200/201 — la route démo répond', function() {",
                   "    pm.expect([200, 201]).to.include(pm.response.code);",
                   "});",
                   "const jsonData = pm.response.json();",
                   "pm.test('La réponse est explicitement marquée comme démo', function() {",
                   "    pm.expect(jsonData.demo).to.eql(true);",
                   "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
                   "if (jsonData.information && jsonData.information.reference) {",
                   "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
                   "}",
@@ -2653,217 +3236,83 @@
                 ]
               }
             }
-          ]
-        },
-        {
-          "name": "Démo statique — POST /appels/init — déjà en cours (409)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/demo/v1/appels/init",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "demo",
-                "v1",
-                "appels",
-                "init"
-              ]
-            },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
-            "auth": {
-              "type": "noauth"
-            },
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "destination_user_id",
-                  "value": "{{userIdMedecin}}",
-                  "type": "text",
-                  "enabled": true
-                }
-              ]
-            }
-          },
-          "event": [
+          ],
+          "response": [
             {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
-                  "    pm.expect([200, 201]).to.include(pm.response.code);",
-                  "});",
-                  "const jsonData = pm.response.json();",
-                  "pm.test('La réponse est explicitement marquée comme démo', function() {",
-                  "    pm.expect(jsonData.demo).to.eql(true);",
-                  "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
-                  "if (jsonData.information && jsonData.information.reference) {",
-                  "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
-                  "}",
-                  "if (jsonData.data && jsonData.data.appel_id) {",
-                  "    const nom = pm.info.requestName;",
-                  "    const variable = nom.includes('médecin → patient') ? 'appelIdMedecin' : 'appelId';",
-                  "    pm.collectionVariables.set(variable, jsonData.data.appel_id);",
-                  "}"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Démo statique — POST /appels/init — solde insuffisant (402)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/demo/v1/appels/init",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "demo",
-                "v1",
-                "appels",
-                "init"
-              ]
-            },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
-            "auth": {
-              "type": "noauth"
-            },
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "destination_user_id",
-                  "value": "{{userIdMedecin}}",
-                  "type": "text",
-                  "enabled": true
+              "name": "201 — exemple de réponse (capture locale)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/demo/v1/appels/init",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "demo",
+                    "v1",
+                    "appels",
+                    "init"
+                  ]
+                },
+                "description": "Route /api/demo/v1 : jeton de SESSION démo requis (voir « session démo » en 00 — Prérequis). Données fictives isolées dans des tables dédiées : aucun compte réel, aucun paiement ni appel réel.",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenDemo}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "destination_user_id",
+                      "value": "{{userIdMedecin}}",
+                      "type": "text",
+                      "enabled": true
+                    }
+                  ]
                 }
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
-                  "    pm.expect([200, 201]).to.include(pm.response.code);",
-                  "});",
-                  "const jsonData = pm.response.json();",
-                  "pm.test('La réponse est explicitement marquée comme démo', function() {",
-                  "    pm.expect(jsonData.demo).to.eql(true);",
-                  "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
-                  "if (jsonData.information && jsonData.information.reference) {",
-                  "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
-                  "}",
-                  "if (jsonData.data && jsonData.data.appel_id) {",
-                  "    const nom = pm.info.requestName;",
-                  "    const variable = nom.includes('médecin → patient') ? 'appelIdMedecin' : 'appelId';",
-                  "    pm.collectionVariables.set(variable, jsonData.data.appel_id);",
-                  "}"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Démo statique — POST /appels/init — mauvais rôle de destination (422)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/demo/v1/appels/init",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "demo",
-                "v1",
-                "appels",
-                "init"
-              ]
-            },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
-            "auth": {
-              "type": "noauth"
-            },
-            "body": {
-              "mode": "formdata",
-              "formdata": [
+              },
+              "status": "OK",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
                 {
-                  "key": "destination_user_id",
-                  "value": "{{userIdPatient}}",
-                  "type": "text",
-                  "enabled": true
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "X-RateLimit-Limit",
+                  "value": "60"
+                },
+                {
+                  "key": "X-RateLimit-Remaining",
+                  "value": "52"
                 }
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
-                  "    pm.expect([200, 201]).to.include(pm.response.code);",
-                  "});",
-                  "const jsonData = pm.response.json();",
-                  "pm.test('La réponse est explicitement marquée comme démo', function() {",
-                  "    pm.expect(jsonData.demo).to.eql(true);",
-                  "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
-                  "if (jsonData.information && jsonData.information.reference) {",
-                  "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
-                  "}",
-                  "if (jsonData.data && jsonData.data.appel_id) {",
-                  "    const nom = pm.info.requestName;",
-                  "    const variable = nom.includes('médecin → patient') ? 'appelIdMedecin' : 'appelId';",
-                  "    pm.collectionVariables.set(variable, jsonData.data.appel_id);",
-                  "}"
-                ]
-              }
+              ],
+              "cookie": [],
+              "body": "{\"demo\":true,\"message\":\"Appel de d\\u00e9monstration \\u2014 aucun appel ni facturation r\\u00e9elle.\",\"data\":{\"appel_id\":9001,\"status\":\"initie\",\"tarif_par_minute\":100}}",
+              "responseTime": 14
             }
           ]
         },
         {
-          "name": "Démo statique — POST /appels/{id}/lancer (initiateur)",
+          "name": "Démo — POST /appels/{id}/lancer (initiateur)",
           "request": {
             "method": "POST",
             "header": [
@@ -2886,9 +3335,16 @@
                 "lancer"
               ]
             },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
+            "description": "Route /api/demo/v1 : jeton de SESSION démo requis (voir « session démo » en 00 — Prérequis). Données fictives isolées dans des tables dédiées : aucun compte réel, aucun paiement ni appel réel.",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenDemo}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "formdata",
@@ -2901,17 +3357,13 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
+                  "pm.test('200/201 — la route démo répond', function() {",
                   "    pm.expect([200, 201]).to.include(pm.response.code);",
                   "});",
                   "const jsonData = pm.response.json();",
                   "pm.test('La réponse est explicitement marquée comme démo', function() {",
                   "    pm.expect(jsonData.demo).to.eql(true);",
                   "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
                   "if (jsonData.information && jsonData.information.reference) {",
                   "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
                   "}",
@@ -2926,7 +3378,7 @@
           ]
         },
         {
-          "name": "Démo statique — POST /appels/{id}/decrocher (médecin)",
+          "name": "Démo — POST /appels/{id}/decrocher (médecin)",
           "request": {
             "method": "POST",
             "header": [
@@ -2949,73 +3401,17 @@
                 "decrocher"
               ]
             },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
+            "description": "Route /api/demo/v1 : jeton de SESSION démo requis (voir « session démo » en 00 — Prérequis). Données fictives isolées dans des tables dédiées : aucun compte réel, aucun paiement ni appel réel.",
             "auth": {
-              "type": "noauth"
-            },
-            "body": {
-              "mode": "formdata",
-              "formdata": []
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
-                  "    pm.expect([200, 201]).to.include(pm.response.code);",
-                  "});",
-                  "const jsonData = pm.response.json();",
-                  "pm.test('La réponse est explicitement marquée comme démo', function() {",
-                  "    pm.expect(jsonData.demo).to.eql(true);",
-                  "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
-                  "if (jsonData.information && jsonData.information.reference) {",
-                  "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
-                  "}",
-                  "if (jsonData.data && jsonData.data.appel_id) {",
-                  "    const nom = pm.info.requestName;",
-                  "    const variable = nom.includes('médecin → patient') ? 'appelIdMedecin' : 'appelId';",
-                  "    pm.collectionVariables.set(variable, jsonData.data.appel_id);",
-                  "}"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Démo statique — POST /appels/{id}/decrocher — par le patient (403)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/demo/v1/appels/{{appelId}}/decrocher",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "demo",
-                "v1",
-                "appels",
-                "{{appelId}}",
-                "decrocher"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenDemo}}",
+                  "type": "string"
+                }
               ]
             },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
-            "auth": {
-              "type": "noauth"
-            },
             "body": {
               "mode": "formdata",
               "formdata": []
@@ -3027,17 +3423,13 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
+                  "pm.test('200/201 — la route démo répond', function() {",
                   "    pm.expect([200, 201]).to.include(pm.response.code);",
                   "});",
                   "const jsonData = pm.response.json();",
                   "pm.test('La réponse est explicitement marquée comme démo', function() {",
                   "    pm.expect(jsonData.demo).to.eql(true);",
                   "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
                   "if (jsonData.information && jsonData.information.reference) {",
                   "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
                   "}",
@@ -3052,7 +3444,7 @@
           ]
         },
         {
-          "name": "Démo statique — POST /appels/{id}/heartbeat",
+          "name": "Démo — POST /appels/{id}/heartbeat",
           "request": {
             "method": "POST",
             "header": [
@@ -3075,9 +3467,16 @@
                 "heartbeat"
               ]
             },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
+            "description": "Route /api/demo/v1 : jeton de SESSION démo requis (voir « session démo » en 00 — Prérequis). Données fictives isolées dans des tables dédiées : aucun compte réel, aucun paiement ni appel réel.",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenDemo}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "formdata",
@@ -3090,17 +3489,13 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
+                  "pm.test('200/201 — la route démo répond', function() {",
                   "    pm.expect([200, 201]).to.include(pm.response.code);",
                   "});",
                   "const jsonData = pm.response.json();",
                   "pm.test('La réponse est explicitement marquée comme démo', function() {",
                   "    pm.expect(jsonData.demo).to.eql(true);",
                   "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
                   "if (jsonData.information && jsonData.information.reference) {",
                   "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
                   "}",
@@ -3115,7 +3510,7 @@
           ]
         },
         {
-          "name": "Démo statique — POST /appels/{id}/terminer",
+          "name": "Démo — POST /appels/{id}/terminer",
           "request": {
             "method": "POST",
             "header": [
@@ -3138,9 +3533,16 @@
                 "terminer"
               ]
             },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
+            "description": "Route /api/demo/v1 : jeton de SESSION démo requis (voir « session démo » en 00 — Prérequis). Données fictives isolées dans des tables dédiées : aucun compte réel, aucun paiement ni appel réel.",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenDemo}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "formdata",
@@ -3160,17 +3562,13 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
+                  "pm.test('200/201 — la route démo répond', function() {",
                   "    pm.expect([200, 201]).to.include(pm.response.code);",
                   "});",
                   "const jsonData = pm.response.json();",
                   "pm.test('La réponse est explicitement marquée comme démo', function() {",
                   "    pm.expect(jsonData.demo).to.eql(true);",
                   "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
                   "if (jsonData.information && jsonData.information.reference) {",
                   "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
                   "}",
@@ -3185,7 +3583,7 @@
           ]
         },
         {
-          "name": "Démo statique — GET /appels/{id}",
+          "name": "Démo — GET /appels/{id}",
           "request": {
             "method": "GET",
             "header": [
@@ -3207,9 +3605,16 @@
                 "{{appelId}}"
               ]
             },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
+            "description": "Route /api/demo/v1 : jeton de SESSION démo requis (voir « session démo » en 00 — Prérequis). Données fictives isolées dans des tables dédiées : aucun compte réel, aucun paiement ni appel réel.",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenDemo}}",
+                  "type": "string"
+                }
+              ]
             }
           },
           "event": [
@@ -3218,17 +3623,13 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
+                  "pm.test('200/201 — la route démo répond', function() {",
                   "    pm.expect([200, 201]).to.include(pm.response.code);",
                   "});",
                   "const jsonData = pm.response.json();",
                   "pm.test('La réponse est explicitement marquée comme démo', function() {",
                   "    pm.expect(jsonData.demo).to.eql(true);",
                   "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
                   "if (jsonData.information && jsonData.information.reference) {",
                   "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
                   "}",
@@ -3243,7 +3644,7 @@
           ]
         },
         {
-          "name": "Démo statique — GET /wallet — le patient a été débité",
+          "name": "Démo — GET /wallet — le patient a été débité",
           "request": {
             "method": "GET",
             "header": [
@@ -3264,9 +3665,16 @@
                 "wallet"
               ]
             },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
+            "description": "Route /api/demo/v1 : jeton de SESSION démo requis (voir « session démo » en 00 — Prérequis). Données fictives isolées dans des tables dédiées : aucun compte réel, aucun paiement ni appel réel.",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenDemo}}",
+                  "type": "string"
+                }
+              ]
             }
           },
           "event": [
@@ -3275,17 +3683,13 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
+                  "pm.test('200/201 — la route démo répond', function() {",
                   "    pm.expect([200, 201]).to.include(pm.response.code);",
                   "});",
                   "const jsonData = pm.response.json();",
                   "pm.test('La réponse est explicitement marquée comme démo', function() {",
                   "    pm.expect(jsonData.demo).to.eql(true);",
                   "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
                   "if (jsonData.information && jsonData.information.reference) {",
                   "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
                   "}",
@@ -3300,7 +3704,7 @@
           ]
         },
         {
-          "name": "Démo statique — POST /appels/init (médecin → patient, relation requise)",
+          "name": "Démo — POST /appels/init (médecin → patient, relation requise)",
           "request": {
             "method": "POST",
             "header": [
@@ -3322,9 +3726,16 @@
                 "init"
               ]
             },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
+            "description": "Route /api/demo/v1 : jeton de SESSION démo requis (voir « session démo » en 00 — Prérequis). Données fictives isolées dans des tables dédiées : aucun compte réel, aucun paiement ni appel réel.",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenDemo}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "formdata",
@@ -3344,17 +3755,13 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
+                  "pm.test('200/201 — la route démo répond', function() {",
                   "    pm.expect([200, 201]).to.include(pm.response.code);",
                   "});",
                   "const jsonData = pm.response.json();",
                   "pm.test('La réponse est explicitement marquée comme démo', function() {",
                   "    pm.expect(jsonData.demo).to.eql(true);",
                   "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
                   "if (jsonData.information && jsonData.information.reference) {",
                   "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
                   "}",
@@ -3369,7 +3776,7 @@
           ]
         },
         {
-          "name": "Démo statique — POST /appels/{id}/lancer + terminer (médecin)",
+          "name": "Démo — POST /appels/{id}/lancer + terminer (médecin)",
           "request": {
             "method": "POST",
             "header": [
@@ -3392,9 +3799,16 @@
                 "lancer"
               ]
             },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
+            "description": "Route /api/demo/v1 : jeton de SESSION démo requis (voir « session démo » en 00 — Prérequis). Données fictives isolées dans des tables dédiées : aucun compte réel, aucun paiement ni appel réel.",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenDemo}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "formdata",
@@ -3407,17 +3821,13 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
+                  "pm.test('200/201 — la route démo répond', function() {",
                   "    pm.expect([200, 201]).to.include(pm.response.code);",
                   "});",
                   "const jsonData = pm.response.json();",
                   "pm.test('La réponse est explicitement marquée comme démo', function() {",
                   "    pm.expect(jsonData.demo).to.eql(true);",
                   "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
                   "if (jsonData.information && jsonData.information.reference) {",
                   "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
                   "}",
@@ -3432,7 +3842,7 @@
           ]
         },
         {
-          "name": "Démo statique — POST /appels/{id}/terminer (non décroché)",
+          "name": "Démo — POST /appels/{id}/terminer (non décroché)",
           "request": {
             "method": "POST",
             "header": [
@@ -3455,9 +3865,16 @@
                 "terminer"
               ]
             },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
+            "description": "Route /api/demo/v1 : jeton de SESSION démo requis (voir « session démo » en 00 — Prérequis). Données fictives isolées dans des tables dédiées : aucun compte réel, aucun paiement ni appel réel.",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenDemo}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "formdata",
@@ -3477,17 +3894,13 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
+                  "pm.test('200/201 — la route démo répond', function() {",
                   "    pm.expect([200, 201]).to.include(pm.response.code);",
                   "});",
                   "const jsonData = pm.response.json();",
                   "pm.test('La réponse est explicitement marquée comme démo', function() {",
                   "    pm.expect(jsonData.demo).to.eql(true);",
                   "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
                   "if (jsonData.information && jsonData.information.reference) {",
                   "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
                   "}",
@@ -3502,7 +3915,7 @@
           ]
         },
         {
-          "name": "Démo statique — GET /wallet — le patient n'a RIEN payé",
+          "name": "Démo — GET /wallet — le patient n'a RIEN payé",
           "request": {
             "method": "GET",
             "header": [
@@ -3523,9 +3936,16 @@
                 "wallet"
               ]
             },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
+            "description": "Route /api/demo/v1 : jeton de SESSION démo requis (voir « session démo » en 00 — Prérequis). Données fictives isolées dans des tables dédiées : aucun compte réel, aucun paiement ni appel réel.",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenDemo}}",
+                  "type": "string"
+                }
+              ]
             }
           },
           "event": [
@@ -3534,17 +3954,13 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
+                  "pm.test('200/201 — la route démo répond', function() {",
                   "    pm.expect([200, 201]).to.include(pm.response.code);",
                   "});",
                   "const jsonData = pm.response.json();",
                   "pm.test('La réponse est explicitement marquée comme démo', function() {",
                   "    pm.expect(jsonData.demo).to.eql(true);",
                   "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
                   "if (jsonData.information && jsonData.information.reference) {",
                   "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
                   "}",
@@ -3559,7 +3975,7 @@
           ]
         },
         {
-          "name": "Démo statique — GET /appels/999999 (404)",
+          "name": "Démo — GET /appels/999999 — réponse fictive (200)",
           "request": {
             "method": "GET",
             "header": [
@@ -3581,9 +3997,16 @@
                 "999999"
               ]
             },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
+            "description": "Route /api/demo/v1 : jeton de SESSION démo requis (voir « session démo » en 00 — Prérequis). Données fictives isolées dans des tables dédiées : aucun compte réel, aucun paiement ni appel réel.",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenDemo}}",
+                  "type": "string"
+                }
+              ]
             }
           },
           "event": [
@@ -3592,17 +4015,13 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
+                  "pm.test('200/201 — la route démo répond', function() {",
                   "    pm.expect([200, 201]).to.include(pm.response.code);",
                   "});",
                   "const jsonData = pm.response.json();",
                   "pm.test('La réponse est explicitement marquée comme démo', function() {",
                   "    pm.expect(jsonData.demo).to.eql(true);",
                   "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
                   "if (jsonData.information && jsonData.information.reference) {",
                   "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
                   "}",
@@ -3616,7 +4035,8 @@
             }
           ]
         }
-      ]
+      ],
+      "description": "Appels DÉMO : `/api/demo/v1/appels/*` renvoie des réponses FACTICES (appel_id 9001, statuts figés, solde toujours 0). Les codes annoncés dans certains noms (409 déjà en cours, 402 solde, 422 rôle, 403 décroche) ne sont donc PAS réellement exercés : la démo ne les implémente pas.\n\nLe comportement réel du module facturé (validation, 402/409/422, facturation à la seconde) vit sur `/api/v1/appels/*` (Sanctum), non couverte par cette collection — écart n°1 du rapport de comparaison."
     },
     {
       "name": "08 — Signalisation WebRTC",
@@ -3949,7 +4369,7 @@
                 }
               ]
             },
-            "description": "Récupération de l'offre WebRTC par device_id. Route PUBLIQUE (le pair qui rejoint n'a pas encore de jeton) et limitée à 30 appels/minute.\\n\\nSans offre enregistrée pour ce device_id, la réponse est un 200 avec `ok: false` — ce n'est pas une erreur HTTP.",
+            "description": "Récupération de l'offre WebRTC par device_id. Route PUBLIQUE (le pair qui rejoint n'a pas encore de jeton) et limitée à 30 appels/minute.\n\nSans offre enregistrée pour ce device_id, la réponse est un 200 avec `ok: false` — ce n'est pas une erreur HTTP.\n\n429 POSSIBLE ET ATTENDU EN FIN DE SUITE : en Laravel, les limites numériques (`throttle:30,1`) partagent la même signature `domaine|IP` — tous les appels throttle de la collection (login 10/min, register 10/min, appels 20/min, wallet 60/min…) cumulent donc UN SEUL compteur. Après ~30 requêtes throttled dans la minute, cette route renvoie 429 même si elle n'a été appelée qu'une fois. Défaut d'API à corriger avec des rate limiters nommés ; le test accepte les deux codes en attendant.",
             "auth": {
               "type": "noauth"
             }
@@ -3960,10 +4380,22 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('200', () => pm.response.to.have.status(200));",
-                  "pm.test('ok=false car aucune offre enregistrée pour ce device_id', () => {",
-                  "    pm.expect(pm.response.json().ok).to.eql(false);",
-                  "});"
+                  "const code = pm.response.code;",
+                  "pm.test('200 (offre lue) OU 429 (quota throttle partagé épuisé)', () => {",
+                  "    pm.expect([200, 429]).to.include(code);",
+                  "});",
+                  "if (code === 200) {",
+                  "    pm.test('ok=false car aucune offre enregistrée pour ce device_id', () => {",
+                  "        pm.expect(pm.response.json().ok).to.eql(false);",
+                  "    });",
+                  "} else {",
+                  "    pm.test('429 — en-tête Retry-After présent', () => {",
+                  "        pm.expect(pm.response.headers.get('Retry-After')).to.exist;",
+                  "    });",
+                  "    pm.test('le corps reste un objet JSON d\\'erreur', () => {",
+                  "        pm.expect(pm.response.json()).to.have.property('message');",
+                  "    });",
+                  "}"
                 ]
               }
             }
@@ -4039,7 +4471,7 @@
       "name": "09 — Sécurité",
       "item": [
         {
-          "name": "Démo statique — GET /wallet sans jeton (401)",
+          "name": "Démo — GET /wallet sans jeton (401)",
           "request": {
             "method": "GET",
             "header": [
@@ -4060,7 +4492,7 @@
                 "wallet"
               ]
             },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
+            "description": "Route /api/demo/v1 protégée par le middleware `demo.auth` : SANS jeton (ou avec un jeton falsifié), l'API renvoie 401 + { demo: true }. C'est ce comportement que ce test verrouille — le 401 Sanctum des vraies routes /api/v1 est testé plus bas dans ce dossier.",
             "auth": {
               "type": "noauth"
             }
@@ -4071,32 +4503,71 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
-                  "    pm.expect([200, 201]).to.include(pm.response.code);",
-                  "});",
-                  "const jsonData = pm.response.json();",
-                  "pm.test('La réponse est explicitement marquée comme démo', function() {",
-                  "    pm.expect(jsonData.demo).to.eql(true);",
-                  "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
-                  "if (jsonData.information && jsonData.information.reference) {",
-                  "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
-                  "}",
-                  "if (jsonData.data && jsonData.data.appel_id) {",
-                  "    const nom = pm.info.requestName;",
-                  "    const variable = nom.includes('médecin → patient') ? 'appelIdMedecin' : 'appelId';",
-                  "    pm.collectionVariables.set(variable, jsonData.data.appel_id);",
-                  "}"
+                  "pm.test('401 — jeton de démonstration requis', () => pm.response.to.have.status(401));",
+                  "const j = pm.response.json();",
+                  "pm.test('réponse marquée démo', () => pm.expect(j.demo).to.eql(true));",
+                  "pm.test('message explicite', () => pm.expect(j.message).to.be.a('string').and.not.empty);"
                 ]
               }
+            }
+          ],
+          "response": [
+            {
+              "name": "401 — exemple de réponse (capture locale)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/demo/v1/wallet",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "demo",
+                    "v1",
+                    "wallet"
+                  ]
+                },
+                "description": "Route /api/demo/v1 protégée par le middleware `demo.auth` : SANS jeton (ou avec un jeton falsifié), l'API renvoie 401 + { demo: true }. C'est ce comportement que ce test verrouille — le 401 Sanctum des vraies routes /api/v1 est testé plus bas dans ce dossier.",
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "Error",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "X-RateLimit-Limit",
+                  "value": "60"
+                },
+                {
+                  "key": "X-RateLimit-Remaining",
+                  "value": "51"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"demo\":true,\"message\":\"Jeton de d\\u00e9monstration requis.\"}",
+              "responseTime": 11
             }
           ]
         },
         {
-          "name": "Démo statique — POST /wallet/recharge sans jeton (401)",
+          "name": "Démo — POST /wallet/recharge sans jeton (401)",
           "request": {
             "method": "POST",
             "header": [
@@ -4118,7 +4589,7 @@
                 "recharge"
               ]
             },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
+            "description": "Route /api/demo/v1 protégée par le middleware `demo.auth` : SANS jeton (ou avec un jeton falsifié), l'API renvoie 401 + { demo: true }. C'est ce comportement que ce test verrouille — le 401 Sanctum des vraies routes /api/v1 est testé plus bas dans ce dossier.",
             "auth": {
               "type": "noauth"
             },
@@ -4127,13 +4598,13 @@
               "formdata": [
                 {
                   "key": "montant",
-                  "value": "",
+                  "value": "5000",
                   "type": "text",
                   "enabled": true
                 },
                 {
                   "key": "phone_number",
-                  "value": "",
+                  "value": "{{phoneApprovisionne}}",
                   "type": "text",
                   "enabled": true
                 }
@@ -4146,32 +4617,17 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
-                  "    pm.expect([200, 201]).to.include(pm.response.code);",
-                  "});",
-                  "const jsonData = pm.response.json();",
-                  "pm.test('La réponse est explicitement marquée comme démo', function() {",
-                  "    pm.expect(jsonData.demo).to.eql(true);",
-                  "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
-                  "if (jsonData.information && jsonData.information.reference) {",
-                  "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
-                  "}",
-                  "if (jsonData.data && jsonData.data.appel_id) {",
-                  "    const nom = pm.info.requestName;",
-                  "    const variable = nom.includes('médecin → patient') ? 'appelIdMedecin' : 'appelId';",
-                  "    pm.collectionVariables.set(variable, jsonData.data.appel_id);",
-                  "}"
+                  "pm.test('401 — jeton de démonstration requis', () => pm.response.to.have.status(401));",
+                  "const j = pm.response.json();",
+                  "pm.test('réponse marquée démo', () => pm.expect(j.demo).to.eql(true));",
+                  "pm.test('message explicite', () => pm.expect(j.message).to.be.a('string').and.not.empty);"
                 ]
               }
             }
           ]
         },
         {
-          "name": "Démo statique — POST /appels/init sans jeton (401)",
+          "name": "Démo — POST /appels/init sans jeton (401)",
           "request": {
             "method": "POST",
             "header": [
@@ -4193,7 +4649,7 @@
                 "init"
               ]
             },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
+            "description": "Route /api/demo/v1 protégée par le middleware `demo.auth` : SANS jeton (ou avec un jeton falsifié), l'API renvoie 401 + { demo: true }. C'est ce comportement que ce test verrouille — le 401 Sanctum des vraies routes /api/v1 est testé plus bas dans ce dossier.",
             "auth": {
               "type": "noauth"
             },
@@ -4215,32 +4671,17 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
-                  "    pm.expect([200, 201]).to.include(pm.response.code);",
-                  "});",
-                  "const jsonData = pm.response.json();",
-                  "pm.test('La réponse est explicitement marquée comme démo', function() {",
-                  "    pm.expect(jsonData.demo).to.eql(true);",
-                  "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
-                  "if (jsonData.information && jsonData.information.reference) {",
-                  "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
-                  "}",
-                  "if (jsonData.data && jsonData.data.appel_id) {",
-                  "    const nom = pm.info.requestName;",
-                  "    const variable = nom.includes('médecin → patient') ? 'appelIdMedecin' : 'appelId';",
-                  "    pm.collectionVariables.set(variable, jsonData.data.appel_id);",
-                  "}"
+                  "pm.test('401 — jeton de démonstration requis', () => pm.response.to.have.status(401));",
+                  "const j = pm.response.json();",
+                  "pm.test('réponse marquée démo', () => pm.expect(j.demo).to.eql(true));",
+                  "pm.test('message explicite', () => pm.expect(j.message).to.be.a('string').and.not.empty);"
                 ]
               }
             }
           ]
         },
         {
-          "name": "Démo statique — Jeton falsifié (401)",
+          "name": "Démo — jeton de session falsifié (401)",
           "request": {
             "method": "GET",
             "header": [
@@ -4261,9 +4702,16 @@
                 "wallet"
               ]
             },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
+            "description": "Route /api/demo/v1 protégée par le middleware `demo.auth` : SANS jeton (ou avec un jeton falsifié), l'API renvoie 401 + { demo: true }. C'est ce comportement que ce test verrouille — le 401 Sanctum des vraies routes /api/v1 est testé plus bas dans ce dossier.",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "demo_jeton_falsifie_absent_de_la_base",
+                  "type": "string"
+                }
+              ]
             }
           },
           "event": [
@@ -4272,25 +4720,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('La route de démonstration répond sans transaction réelle', function() {",
-                  "    pm.expect([200, 201]).to.include(pm.response.code);",
-                  "});",
-                  "const jsonData = pm.response.json();",
-                  "pm.test('La réponse est explicitement marquée comme démo', function() {",
-                  "    pm.expect(jsonData.demo).to.eql(true);",
-                  "});",
-                  "if (jsonData.wallet && jsonData.wallet.wallet_id) {",
-                  "    pm.collectionVariables.set('walletApprovisionne', jsonData.wallet.wallet_id);",
-                  "    pm.collectionVariables.set('walletPatient', jsonData.wallet.wallet_id);",
-                  "}",
-                  "if (jsonData.information && jsonData.information.reference) {",
-                  "    pm.collectionVariables.set('rechargeReference', jsonData.information.reference);",
-                  "}",
-                  "if (jsonData.data && jsonData.data.appel_id) {",
-                  "    const nom = pm.info.requestName;",
-                  "    const variable = nom.includes('médecin → patient') ? 'appelIdMedecin' : 'appelId';",
-                  "    pm.collectionVariables.set(variable, jsonData.data.appel_id);",
-                  "}"
+                  "pm.test('401 — session invalide rejetée', () => pm.response.to.have.status(401));",
+                  "const j = pm.response.json();",
+                  "pm.test('réponse marquée démo', () => pm.expect(j.demo).to.eql(true));",
+                  "pm.test('le rejet est explicite', () => pm.expect(j.message).to.include('invalide'));"
                 ]
               }
             }
@@ -4332,10 +4765,55 @@
                 ]
               }
             }
+          ],
+          "response": [
+            {
+              "name": "404 — exemple de réponse (capture locale)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/nexiste_pas_du_tout",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "nexiste_pas_du_tout"
+                  ]
+                },
+                "description": "Une route inconnue renvoie 404, pas 500.",
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "Error",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"The route api/v1/nexiste_pas_du_tout could not be found.\"\n}",
+              "responseTime": 6
+            }
           ]
         },
         {
-          "name": "Démo statique — Méthode HTTP non autorisée (405)",
+          "name": "Démo — Méthode HTTP non autorisée (405)",
           "request": {
             "method": "DELETE",
             "header": [
@@ -4356,7 +4834,7 @@
                 "wallet"
               ]
             },
-            "description": "DÉMO STATIQUE : cette requête renvoie une réponse JSON fixe. Elle n'utilise pas le wallet réel, ne modifie aucune donnée et ne déclenche aucun paiement ni appel. Les valeurs de formulaire servent uniquement à illustrer le contrat ; la réponse ne dépend pas d'elles.",
+            "description": "Route /api/demo/v1 protégée par le middleware `demo.auth` : SANS jeton (ou avec un jeton falsifié), l'API renvoie 401 + { demo: true }. C'est ce comportement que ce test verrouille — le 401 Sanctum des vraies routes /api/v1 est testé plus bas dans ce dossier.",
             "auth": {
               "type": "noauth"
             }
@@ -4372,8 +4850,363 @@
               }
             }
           ]
+        },
+        {
+          "name": "GET /users/me — sans jeton (401)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me"
+              ]
+            },
+            "description": "Vrai contrôle d'accès : `/api/v1/users/me` est derrière `auth:sanctum`. Sans Authorization → 401.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 — accès refusé sans jeton valide', () => pm.response.to.have.status(401));",
+                  "pm.test('le corps d\\'erreur Laravel est présent', () => {",
+                  "    const j = pm.response.json();",
+                  "    pm.expect(j).to.have.property('message');",
+                  "});",
+                  "pm.test('aucun donnée sensible dans la réponse', () => {",
+                  "    pm.expect(pm.response.text()).to.not.include('password');",
+                  "    pm.expect(pm.response.text()).to.not.include('token');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /contacts — sans jeton (401)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/contacts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "contacts"
+              ]
+            },
+            "description": "Vrai contrôle d'accès : la liste des contacts exige un jeton valide → 401.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 — accès refusé sans jeton valide', () => pm.response.to.have.status(401));",
+                  "pm.test('le corps d\\'erreur Laravel est présent', () => {",
+                  "    const j = pm.response.json();",
+                  "    pm.expect(j).to.have.property('message');",
+                  "});",
+                  "pm.test('aucun donnée sensible dans la réponse', () => {",
+                  "    pm.expect(pm.response.text()).to.not.include('password');",
+                  "    pm.expect(pm.response.text()).to.not.include('token');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /devices — sans jeton (401)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/devices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "devices"
+              ]
+            },
+            "description": "Vrai contrôle d'accès : le registre d'appareils exige un jeton valide → 401.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 — accès refusé sans jeton valide', () => pm.response.to.have.status(401));",
+                  "pm.test('le corps d\\'erreur Laravel est présent', () => {",
+                  "    const j = pm.response.json();",
+                  "    pm.expect(j).to.have.property('message');",
+                  "});",
+                  "pm.test('aucun donnée sensible dans la réponse', () => {",
+                  "    pm.expect(pm.response.text()).to.not.include('password');",
+                  "    pm.expect(pm.response.text()).to.not.include('token');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /call/ring — sans jeton (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/call/ring",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "call",
+                "ring"
+              ]
+            },
+            "description": "Vrai contrôle d'accès : la signalisation WebRTC exige un jeton valide → 401.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "to_user_id",
+                  "value": "1",
+                  "type": "text",
+                  "enabled": true
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 — accès refusé sans jeton valide', () => pm.response.to.have.status(401));",
+                  "pm.test('le corps d\\'erreur Laravel est présent', () => {",
+                  "    const j = pm.response.json();",
+                  "    pm.expect(j).to.have.property('message');",
+                  "});",
+                  "pm.test('aucun donnée sensible dans la réponse', () => {",
+                  "    pm.expect(pm.response.text()).to.not.include('password');",
+                  "    pm.expect(pm.response.text()).to.not.include('token');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /appels/init — sans jeton (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/appels/init",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "appels",
+                "init"
+              ]
+            },
+            "description": "Vrai contrôle d'accès : le module d'appels facturés exige un jeton valide → 401. C'est la route RÉELLE (contrairement aux démos de ce dossier).",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "destination_user_id",
+                  "value": "1",
+                  "type": "text",
+                  "enabled": true
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 — accès refusé sans jeton valide', () => pm.response.to.have.status(401));",
+                  "pm.test('le corps d\\'erreur Laravel est présent', () => {",
+                  "    const j = pm.response.json();",
+                  "    pm.expect(j).to.have.property('message');",
+                  "});",
+                  "pm.test('aucun donnée sensible dans la réponse', () => {",
+                  "    pm.expect(pm.response.text()).to.not.include('password');",
+                  "    pm.expect(pm.response.text()).to.not.include('token');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /wallet — sans jeton (401)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/wallet",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "wallet"
+              ]
+            },
+            "description": "Vrai contrôle d'accès : le wallet réel exige un jeton valide → 401. Le GET /wallet du haut de ce dossier cible la route démo publique.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 — accès refusé sans jeton valide', () => pm.response.to.have.status(401));",
+                  "pm.test('le corps d\\'erreur Laravel est présent', () => {",
+                  "    const j = pm.response.json();",
+                  "    pm.expect(j).to.have.property('message');",
+                  "});",
+                  "pm.test('aucun donnée sensible dans la réponse', () => {",
+                  "    pm.expect(pm.response.text()).to.not.include('password');",
+                  "    pm.expect(pm.response.text()).to.not.include('token');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /wallet — jeton falsifié (401)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/wallet",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "wallet"
+              ]
+            },
+            "description": "Jeton bidon envoyé dans Authorization : Sanctum doit le rejeter avec 401. Vérifie que l'API ne se contente pas d'un en-tête Authorization présent.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "jeton-falsifie-ne-doit-pas-marcher",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 — accès refusé sans jeton valide', () => pm.response.to.have.status(401));",
+                  "pm.test('le corps d\\'erreur Laravel est présent', () => {",
+                  "    const j = pm.response.json();",
+                  "    pm.expect(j).to.have.property('message');",
+                  "});",
+                  "pm.test('aucun donnée sensible dans la réponse', () => {",
+                  "    pm.expect(pm.response.text()).to.not.include('password');",
+                  "    pm.expect(pm.response.text()).to.not.include('token');",
+                  "});"
+                ]
+              }
+            }
+          ]
         }
-      ]
+      ],
+      "description": "PARTIE 1 — Routes démo appelées SANS jeton ou avec un jeton falsifié → 401 attendu (middleware demo.auth).\nPARTIE 2 — Comportement HTTP générique : 404 route inconnue, 405 mauvaise méthode.\nPARTIE 3 — Contrôle d'accès sur les vraies routes `/api/v1/*` protégées par Sanctum, appelées SANS jeton puis avec un jeton falsifié → 401 obligatoire. C'est là que la sécurité de l'API réelle est prouvée, pas sur la démo."
     },
     {
       "name": "99 — Déconnexion",

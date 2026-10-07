@@ -1,0 +1,491 @@
+{
+  "info": {
+    "name": "Yam Demo API",
+    "description": "Collection publique pour tester l'authentification, les wallets isolés, les transferts virtuels, les recharges simulées et les transactions. Tous les fonds sont fictifs.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://yam.mdkrlabs.dev",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token_receiver",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "receiver_wallet",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "recharge_reference",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0 — Découvrir l'API",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/demo/v1",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "demo",
+            "v1"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        }
+      }
+    },
+    {
+      "name": "1 — Créer une session invitée",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/demo/v1/auth/login",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "demo",
+            "v1",
+            "auth",
+            "login"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Session démo créée', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set('token', body.data.token);",
+              "pm.test('Le wallet invité démarre avec un solde démo', () => pm.expect(body.data.user.wallet_id).to.match(/^TGW/));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 — Consulter mon wallet",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/demo/v1/wallet",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "demo",
+            "v1",
+            "wallet"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "3 — Créer un second compte démo destinataire",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Compte destinataire démo\",\n  \"phone_number\": \"{{receiver_phone}}\",\n  \"password\": \"DemoPass123\",\n  \"device_id\": \"postman-receiver\",\n  \"platform\": \"web\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/demo/v1/auth/register",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "demo",
+            "v1",
+            "auth",
+            "register"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('receiver_phone', '+2289' + Date.now().toString().slice(-7));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Second compte démo créé', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set('token_receiver', body.data.token);",
+              "pm.collectionVariables.set('receiver_wallet', body.data.user.wallet_id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4 — Transférer 1 000 XOF au second compte",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"montant\": 1000,\n  \"destinataire_wallet_id\": \"{{receiver_wallet}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/demo/v1/wallet/transfert",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "demo",
+            "v1",
+            "wallet",
+            "transfert"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "5 — Retirer 500 XOF (retrait virtuel)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"montant\": 500,\n  \"phone_number\": \"+228900000099\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/demo/v1/wallet/withdraw",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "demo",
+            "v1",
+            "wallet",
+            "withdraw"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "description": "Retrait virtuel : le solde est débité immédiatement (status 2 = Réussie). Solde insuffisant → 402, montant absent → 422. Aucun fonds réel ne bouge."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Retrait accepté (201)', () => pm.expect(pm.response.code).to.eql(201));",
+              "const body = pm.response.json();",
+              "pm.test('Réponse marquée comme démo', () => pm.expect(body.demo).to.eql(true));",
+              "pm.test('Transaction Réussie (status 2)', () => pm.expect(body.information.status).to.eql(2));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6 — Recharger le wallet (simulation)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"montant\": 2000,\n  \"phone_number\": \"+22890000000\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/demo/v1/wallet/recharge",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "demo",
+            "v1",
+            "wallet",
+            "recharge"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Recharge créée en attente', () => pm.response.to.have.status(201));",
+              "pm.collectionVariables.set('recharge_reference', pm.response.json().information.reference);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "7 — Confirmer la recharge simulée",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"transaction_id\": \"{{recharge_reference}}\",\n  \"code\": 200\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/demo/v1/wallet/recharge/notify",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "demo",
+            "v1",
+            "wallet",
+            "recharge",
+            "notify"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Recharge simulée créditée une seule fois', () => pm.expect(pm.response.json().credit).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "8 — Consulter l'historique paginé",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/demo/v1/wallet/transactions?page=1&limit=20",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "demo",
+            "v1",
+            "wallet",
+            "transactions"
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "20"
+            }
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
