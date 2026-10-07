@@ -104,6 +104,30 @@ function db_connect(): ?PDO {
 }
 
 /**
+ * Réponse JSON explicite lorsqu'un endpoint métier ne peut pas accéder à la base.
+ * (Aligné sur web/kondjipro/config/db.php — utilisé par encaissement_create.php
+ * et les autres endpoints qui refusent d'écrire sans base.)
+ */
+function api_db_unavailable(): void {
+    http_response_code(503);
+    echo json_encode([
+        'ok'      => false,
+        'message' => 'Base de données indisponible. Aucune donnée n’a été enregistrée.',
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+function api_db_failure(Throwable $error): void {
+    error_log('[kondjipro] API database operation failed: ' . $error->getMessage());
+    http_response_code(500);
+    echo json_encode([
+        'ok'      => false,
+        'message' => 'Échec de l’enregistrement en base de données.',
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+/**
  * Petit helper pour calculer un âge à partir d'une date de naissance.
  */
 function age_from_birth(?string $dob): ?int {

@@ -70,12 +70,21 @@ garde = """<script>
    * chargement. Sans ce script, la SPA viserait /api/v1 (mode réel)
    * et afficherait l'écran de connexion au lieu de la démo. */
   try {
+    const tokenDemo = (localStorage.getItem("auth_token") || "").startsWith("demo_");
     localStorage.setItem("yam_demo_mode", "1");
     // Ouvre la démo même si l'onglet avait mémorisé l'adresse d'un
     // ancien tunnel ou d'un ancien LAN : on repart de l'URL courante.
     localStorage.removeItem("yam_server_url");
-    localStorage.removeItem("auth_token");
-    localStorage.removeItem("user_id");
+    // Une session démo est persistante et possède son propre wallet. On
+    // efface seulement une éventuelle session réelle au premier basculement.
+    if (!tokenDemo) {
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("user_id");
+      localStorage.removeItem("user_name");
+      localStorage.removeItem("user_username");
+      localStorage.removeItem("user_phone");
+      localStorage.removeItem("user_role");
+    }
   } catch (e) { /* mode privé : la SPA tombera sur l'API réelle */ }
 </script>
 """
@@ -88,6 +97,13 @@ PY
 
   ok "Généré : demo.html (mode démo forcé)"
 }
+
+# Le script de partage ne doit pas resynchroniser d'autres fichiers web pour
+# simplement préparer la page de démonstration.
+if [[ "${1:-}" == "--demo-only" ]]; then
+  genere_demo_html
+  exit 0
+fi
 
 # Si un fichier précis est demandé, on ne synchronise que lui
 if [[ $# -gt 0 ]]; then

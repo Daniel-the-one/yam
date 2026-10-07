@@ -61,7 +61,12 @@ if (!$user) {
     exit;
 }
 
+// Le mobile a besoin du token CSRF dès la connexion : les endpoints POST
+// (consultation_save, facture_save…) exigent le header X-CSRF-Token, et le
+// portail web l'obtient via <meta name="csrf-token"> — channel indisponible
+// pour un client non HTML. csrf_generate() est idempotent par session.
 echo json_encode([
-    'user'    => $user,
-    'message' => 'Connexion réussie.',
+    'user'       => $user,
+    'csrf_token' => csrf_generate(),
+    'message'    => 'Connexion réussie.',
 ]);

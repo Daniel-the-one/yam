@@ -40,7 +40,9 @@
       // Ne JAMAIS écraser un token existant par une chaîne vide : les réponses
       // comme /users/me ne contiennent pas de token et on perdrait la session.
       if (d.token) localStorage.setItem("auth_token", d.token);
-      const user = d.user || {};
+      // /auth/login and /auth/register wrap the profile in `user`, while
+      // /users/me returns the profile fields directly inside `data`.
+      const user = d.user || (d.id != null ? d : {});
       localStorage.setItem("user_id", user.id != null ? String(user.id) : "");
       localStorage.setItem("user_name", user.name || "");
       localStorage.setItem("user_username", user.username || "");

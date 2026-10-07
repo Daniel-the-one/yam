@@ -154,12 +154,27 @@
         window.location.assign(paymentUrl.href);
         return;
       }
+      let confirmationMessage;
+      if (payment?.mode === "demo" && isDemoMode()) {
+        const reference = data.information?.reference;
+        if (!reference) throw new Error("La référence de recharge est absente.");
+        const confirmationResponse = await window.fetchAuth(`${apiBase()}${walletPath}/recharge/notify`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ transaction_id: reference, code: 200 }),
+        });
+        const confirmation = await readJson(confirmationResponse);
+        if (confirmation.credit !== true) {
+          throw new Error("La recharge virtuelle n’a pas été confirmée.");
+        }
+        confirmationMessage = "Recharge de démonstration confirmée. Le solde virtuel a été crédité.";
+      }
       form.reset();
       setMessage(
         message,
-        payment?.mode === "simulation"
+        confirmationMessage || (payment?.mode === "simulation"
           ? "Recharge enregistrée en attente. Le paiement sera disponible lorsque CinetPay sera configuré."
-          : "Recharge initiée. Son solde sera crédité après confirmation du paiement."
+          : "Recharge initiée. Son solde sera crédité après confirmation du paiement.")
       );
       await refreshWallet();
     } catch (error) {

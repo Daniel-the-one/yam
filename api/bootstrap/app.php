@@ -14,6 +14,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->alias([
+            'demo.auth' => \App\Http\Middleware\AuthenticateDemoAccount::class,
+        ]);
+
         // Pour les routes API : retourner un 401 JSON au lieu de rediriger
         // vers la route "login" (qui n'existe pas dans une API pure).
         $middleware->redirectGuestsTo(function (Request $request) {

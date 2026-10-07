@@ -2,301 +2,445 @@
 
 namespace Tests\Feature;
 
-use App\Http\Controllers\DemoApiController;
+use App\Models\DemoAccount;
+use App\Models\DemoWalletTransaction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class DemoApiTest extends TestCase
 {
-    // Les tests de session démo vérifient qu'un jeton factice est refusé
-    // par l'API RÉELLE : cela exige les tables en place.
     use RefreshDatabase;
-    public function test_wallet_demo_returns_static_fixture_independent_of_input(): void
+
+    public function test_demo_index_exposes_shareable_api_and_postman_links(): void
     {
-        $premiere = $this->postJson('/api/demo/v1/wallet/recharge', [
-            'montant' => 1000,
-            'phone_number' => '228900000001',
-        ])->assertCreated()
-            ->assertJsonPath('demo', true)
-            ->assertJsonPath('information.payment.payment_url', '');
-
-        $seconde = $this->postJson('/api/demo/v1/wallet/recharge', [
-            'montant' => 900000,
-            'phone_number' => '228900000002',
-        ])->assertCreated()
-            ->assertJsonPath('demo', true);
-
-        $this->assertSame($premiere->json(), $seconde->json());
-    }
-
-    public function test_wallet_demo_never_credits_or_transfers_money(): void
-    {
-        $this->getJson('/api/demo/v1/wallet')
+        $this->getJson('/api/demo/v1')
             ->assertOk()
             ->assertJsonPath('demo', true)
+            ->assertJsonPath('wallet.initial_balance_xof', 50000)
+            ->assertJsonPath('authentication.header', 'Authorization: Bearer <token>')
+            ->assertJsonPath('postman_collection_path', '/Yam-Demo-API.postman_collection.json')
+            ->assertJsonPath('authenticated_routes.19', 'GET /appels/{appel}')
+            ->assertJsonPath('endpoints.0.url', url('/api/demo/v1'))
+            ->assertJsonPath('endpoints.1.url', url('/api/demo/v1/config'))
+            ->assertJsonPath('endpoints.3.requires_auth', false)
+            ->assertJsonPath('endpoints.16.url', url('/api/demo/v1/wallet'))
+            ->assertJsonPath('endpoints.16.requires_auth', true)
+            ->assertJsonPath('endpoints.21.path', '/api/demo/v1/wallet/withdraw')
+            ->assertJsonPath('endpoints.30.method', 'GET');
+    }
+
+    public function test_guest_login_creates_an_isolated_persistent_wallet_and_session(): void
+    {
+        $first = $this->postJson('/api/demo/v1/auth/login', [])->assertOk()->json('data');
+        $second = $this->postJson('/api/demo/v1/auth/login', [])->assertOk()->json('data');
+
+        $this->assertNotSame($first['token'], $second['token']);
+        $this->assertNotSame($first['user']['wallet_id'], $second['user']['wallet_id']);
+        $this->assertDatabaseCount('demo_accounts', 2);
+        $this->assertDatabaseCount('demo_access_tokens', 2);
+
+        $this->getJson('/api/demo/v1/wallet', $this->auth($first['token']))
+            ->assertOk()
             ->assertJsonPath('wallet.solde_raw', 50000);
+        $this->getJson('/api/demo/v1/wallet', $this->auth($second['token']))
+            ->assertOk()
+            ->assertJsonPath('wallet.solde_raw', 50000);
+    }
 
-        $this->postJson('/api/demo/v1/wallet/transfert', [
-            'montant' => 1000000,
-            'destinataire_wallet_id' => 'DEMO-WALLET-002',
+    public function test_register_login_and_logout_use_real_demo_credentials_without_real_auth_access(): void
+    {
+        $registered = $this->postJson('/api/demo/v1/auth/register', [
+            'name' => 'Compte Test',
+            'phone_number' => '+22890000001',
+            'username' => 'compte-test',
+            'password' => 'DemoPass123',
+            'device_id' => 'postman-device',
         ])->assertCreated()
             ->assertJsonPath('demo', true)
-            ->assertJsonPath('information.new_balance', '-');
+            ->assertJsonPath('data.user.name', 'Compte Test');
 
-        $this->postJson('/api/demo/v1/wallet/recharge/notify', [
-            'transaction_id' => 'DEMO-RECHARGE-001',
-            'code' => 200,
-        ])->assertOk()
-            ->assertJsonPath('demo', true)
-            ->assertJsonPath('credit', false);
-    }
+        $token = $registered->json('data.token');
+        $account = DemoAccount::firstOrFail();
+        $this->assertNotSame('DemoPass123', $account->password);
+        $this->assertTrue(Hash::check('DemoPass123', $account->password));
+        $this->assertDatabaseHas('demo_access_tokens', ['token_hash' => hash('sha256', $token)]);
+        $this->assertDatabaseMissing('demo_access_tokens', ['token_hash' => $token]);
 
-    public function test_paid_call_demo_returns_static_response_without_authentication(): void
-    {
-        $this->postJson('/api/demo/v1/appels/init', ['destination_user_id' => 123])
-            ->assertCreated()
-            ->assertJsonPath('demo', true)
-            ->assertJsonPath('data.appel_id', 9001);
+        $login = $this->postJson('/api/demo/v1/auth/login', [
+            'phone_number' => '90000001',
+            'password' => 'DemoPass123',
+        ])->assertOk();
+        $loginToken = $login->json('data.token');
 
-        $this->postJson('/api/demo/v1/appels/9001/terminer', ['raison' => 'anything'])
+        $this->getJson('/api/demo/v1/users/me', $this->auth($loginToken))
             ->assertOk()
-            ->assertJsonPath('demo', true)
-            ->assertJsonPath('data.solde_consomme', 0);
+            ->assertJsonPath('data.name', 'Compte Test');
+        $this->getJson('/api/v1/users/me', $this->auth($loginToken))->assertUnauthorized();
 
-        $this->getJson('/api/demo/v1/appels/9001')
-            ->assertOk()
-            ->assertJsonPath('demo', true)
-            ->assertJsonPath('data.solde_consomme', 0);
-    }
-
-    // ---------------------------------------------------------------
-    // Session démo : sans ces endpoints, un client web reste bloqué sur
-    // son écran de connexion et la démo n'est pas testable.
-    // ---------------------------------------------------------------
-
-    public function test_demo_login_returns_a_token_without_touching_the_database(): void
-    {
-        $premiere = $this->postJson('/api/demo/v1/auth/login', [
-            'phone_number' => '70023786',
-            'password' => 'un-mot-de-passe-quelconque',
-        ])->assertOk()
-            ->assertJsonPath('demo', true)
-            ->assertJsonPath('data.token', DemoApiController::JETON_DEMO)
-            ->assertJsonPath('data.user.id', 9001);
-
-        // Identifiants absents ou invalides : la démo accepte quand même,
-        // et rend exactement la même réponse. Preuve qu'aucun compte n'est
-        // lu ni vérifié.
-        $seconde = $this->postJson('/api/demo/v1/auth/login', [])->assertOk();
-
-        $this->assertSame($premiere->json(), $seconde->json());
-    }
-
-    /**
-     * La garantie la plus importante du mode démo : le jeton factice ne
-     * doit être accepté par AUCUN endpoint réel. Sans ce test, un jour
-     * quelqu'un pourrait rendre la démo utilisable pour de vraies actions.
-     */
-    public function test_demo_token_is_rejected_by_the_real_api(): void
-    {
-        $this->getJson('/api/v1/users/me', [
-            'Authorization' => 'Bearer '.DemoApiController::JETON_DEMO,
-        ])->assertUnauthorized();
-
-        // Contrôle négatif : le 401 ci-dessus ne doit pas être simplement
-        // « tout est refusé ». Un vrai jeton, lui, passe.
-        $reel = $this->postJson('/api/v1/auth/register', [
-            'phone_number' => '70023786',
-            'username' => 'demo_probe',
-            'password' => 'motdepasse_ecret_1',
-        ]);
-        $jetonReel = $reel->json('data.token');
-
-        if ($reel->isSuccessful() && is_string($jetonReel) && $jetonReel !== '') {
-            $this->getJson('/api/v1/users/me', [
-                'Authorization' => 'Bearer '.$jetonReel,
-            ])->assertOk();
-        }
-
-        $this->assertNotSame(
-            DemoApiController::JETON_DEMO,
-            is_string($jetonReel) ? $jetonReel : '',
-            'Le jeton réel ne doit jamais être confondu avec celui de la démo.'
-        );
-    }
-
-    public function test_demo_session_endpoints_need_no_authentication(): void
-    {
-        $this->getJson('/api/demo/v1/users/me')
-            ->assertOk()
-            ->assertJsonPath('demo', true)
-            ->assertJsonPath('data.devices_count', 1);
-
-        $this->getJson('/api/demo/v1/users/search?q=dr')
-            ->assertOk()
-            ->assertJsonPath('demo', true);
-
-        $this->postJson('/api/demo/v1/auth/logout')
+        $this->postJson('/api/demo/v1/auth/logout', [], $this->auth($loginToken))
             ->assertOk()
             ->assertJsonPath('data.ok', true);
+        $this->getJson('/api/demo/v1/users/me', $this->auth($loginToken))->assertUnauthorized();
     }
 
-    /**
-     * Le tunnel de démo est public : la configuration démo ne doit
-     * contain aucun secret. Une régression ici divulguait les
-     * identifiants TURN et la clé Pusher à quiconque ouvre le lien.
-     */
-    public function test_demo_config_exposes_no_secret(): void
+    public function test_invalid_demo_login_and_registration_payloads_are_rejected(): void
     {
-        $config = $this->getJson('/api/demo/v1/config')
+        $this->postJson('/api/demo/v1/auth/login', [
+            'phone_number' => '+22890000099',
+            'password' => 'incorrect',
+        ])->assertUnauthorized();
+
+        $this->postJson('/api/demo/v1/auth/register', [
+            'name' => 'Compte Test',
+            'phone_number' => '+22890000001',
+            'password' => 'DemoPass123',
+        ])->assertCreated();
+
+        $this->postJson('/api/demo/v1/auth/register', [
+            'name' => 'Doublon',
+            'phone_number' => '90000001',
+            'password' => 'DemoPass123',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors('phone_number');
+    }
+
+    public function test_personal_demo_endpoints_require_a_valid_demo_token(): void
+    {
+        $this->getJson('/api/demo/v1/wallet')->assertUnauthorized();
+        $this->getJson('/api/demo/v1/users/me')->assertUnauthorized();
+        $this->getJson('/api/demo/v1/wallet/transactions')->assertUnauthorized();
+        $this->postJson('/api/demo/v1/wallet/transfert', [
+            'montant' => 100,
+            'destinataire_wallet_id' => 'TGWNONEXISTENT',
+        ])->assertUnauthorized();
+        $this->getJson('/api/demo/v1/wallet', ['Authorization' => 'Bearer forged-token'])->assertUnauthorized();
+    }
+
+    public function test_wallet_is_user_scoped_and_matches_live_api_response_contract(): void
+    {
+        $one = $this->createDemoAccount('+22890000011', 'Client Un');
+        $two = $this->createDemoAccount('+22890000012', 'Client Deux');
+
+        $this->getJson('/api/demo/v1/wallet', $this->auth($one['token']))
             ->assertOk()
             ->assertJsonPath('demo', true)
-            ->json();
+            ->assertJsonPath('wallet.wallet_id', $one['user']['wallet_id'])
+            ->assertJsonPath('wallet.solde_raw', 50000)
+            ->assertJsonPath('wallet.is_default', 1)
+            ->assertJsonPath('membre.nom', 'Client Un')
+            ->assertJsonPath('membre.kyc_valide', 0)
+            ->assertJsonPath('dernieres_transactions', []);
 
-        $this->assertSame('', $config['pusher']['app_key'], 'La clé Pusher ne doit jamais sortir en démo.');
-        $this->assertSame('', $config['pusher']['cluster']);
-        $this->assertSame('', $config['turn']['url']);
-        $this->assertSame('', $config['turn']['username']);
+        $this->getJson('/api/demo/v1/wallet', $this->auth($two['token']))
+            ->assertJsonPath('wallet.wallet_id', $two['user']['wallet_id'])
+            ->assertJsonPath('wallet.solde_raw', 50000);
+    }
+
+    public function test_internal_transfer_debits_and_credits_both_demo_wallets_atomically(): void
+    {
+        $sender = $this->createDemoAccount('+22890000021', 'Émetteur');
+        $recipient = $this->createDemoAccount('+22890000022', 'Destinataire');
+
+        $result = $this->postJson('/api/demo/v1/wallet/transfert', [
+            'montant' => 1000,
+            'destinataire_wallet_id' => $recipient['user']['wallet_id'],
+        ], $this->auth($sender['token']))
+            ->assertCreated()
+            ->assertJsonPath('demo', true)
+            ->assertJsonPath('information.status', 2)
+            ->assertJsonPath('information.is_internal', 1);
+
+        $this->getJson('/api/demo/v1/wallet', $this->auth($sender['token']))
+            ->assertJsonPath('wallet.solde_raw', 48900);
+        $this->getJson('/api/demo/v1/wallet', $this->auth($recipient['token']))
+            ->assertJsonPath('wallet.solde_raw', 51000);
+
+        $reference = $result->json('information.reference');
+        $this->assertDatabaseHas('demo_wallet_transactions', [
+            'demo_account_id' => DemoAccount::where('wallet_id', $sender['user']['wallet_id'])->value('id'),
+            'reference' => $reference,
+            'direction' => 'debit',
+            'amount' => 1000,
+            'balance_after' => 48900,
+            'status' => 2,
+        ]);
+        $this->assertDatabaseHas('demo_wallet_transactions', [
+            'demo_account_id' => DemoAccount::where('wallet_id', $recipient['user']['wallet_id'])->value('id'),
+            'reference' => $reference.'-C',
+            'direction' => 'credit',
+            'amount' => 1000,
+            'balance_after' => 51000,
+            'status' => 2,
+        ]);
+    }
+
+    public function test_transfer_rejects_self_unknown_wallet_and_insufficient_balance(): void
+    {
+        $sender = $this->createDemoAccount('+22890000031', 'Émetteur');
+        $this->postJson('/api/demo/v1/wallet/transfert', [
+            'montant' => 10,
+            'destinataire_wallet_id' => $sender['user']['wallet_id'],
+        ], $this->auth($sender['token']))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('destinataire_wallet_id');
+
+        $this->postJson('/api/demo/v1/wallet/transfert', [
+            'montant' => 10,
+            'destinataire_wallet_id' => 'TGWUNKNOWN',
+        ], $this->auth($sender['token']))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('destinataire_wallet_id');
+
+        $recipient = $this->createDemoAccount('+22890000032', 'Destinataire');
+        $this->postJson('/api/demo/v1/wallet/transfert', [
+            'montant' => 50000,
+            'destinataire_wallet_id' => $recipient['user']['wallet_id'],
+        ], $this->auth($sender['token']))->assertStatus(402);
+
+        $this->getJson('/api/demo/v1/wallet', $this->auth($sender['token']))
+            ->assertJsonPath('wallet.solde_raw', 50000);
+        $this->assertDatabaseCount('demo_wallet_transactions', 0);
+    }
+
+    /**
+     * POST /api/demo/v1/wallet/withdraw — retrait virtuel.
+     *
+     * Contrat aligné sur l'API réelle : 201 + débit immédiat, 402 si le solde
+     * ne couvre pas le montant, 422 si `montant` manque, 401 sans jeton.
+     */
+    public function test_withdraw_debits_the_demo_balance_and_rejects_missing_amount_or_insufficient_funds(): void
+    {
+        $account = $this->createDemoAccount('+22890000041', 'Retrait');
+
+        // Route dans le groupe demo.auth : sans jeton → 401.
+        $this->postJson('/api/demo/v1/wallet/withdraw', ['montant' => 1000])
+            ->assertUnauthorized();
+
+        $this->postJson('/api/demo/v1/wallet/withdraw', [
+            'montant'      => 2000,
+            'phone_number' => '+228900000099',
+        ], $this->auth($account['token']))
+            ->assertCreated()
+            ->assertJsonPath('demo', true)
+            ->assertJsonPath('status', '000')
+            ->assertJsonPath('information.status', 2);
+
+        $this->getJson('/api/demo/v1/wallet', $this->auth($account['token']))
+            ->assertJsonPath('wallet.solde_raw', 48000);
+
+        $this->assertDatabaseHas('demo_wallet_transactions', [
+            'demo_account_id' => DemoAccount::where('wallet_id', $account['user']['wallet_id'])->value('id'),
+            'type'            => 'WITHDRAW',
+            'direction'       => 'debit',
+            'amount'          => 2000,
+            'balance_after'   => 48000,
+            'status'          => 2,
+        ]);
+
+        // Solde insuffisant → 402, et surtout RIEN de débité en plus.
+        $this->postJson('/api/demo/v1/wallet/withdraw', [
+            'montant' => 49000,
+        ], $this->auth($account['token']))->assertStatus(402);
+
+        $this->getJson('/api/demo/v1/wallet', $this->auth($account['token']))
+            ->assertJsonPath('wallet.solde_raw', 48000);
+        $this->assertSame(1, DemoWalletTransaction::where('type', 'WITHDRAW')->count(),
+            'Le rejet 402 a malgré tout écrit une transaction.');
+
+        // `montant` absent → 422 (erreur de formulaire, pas d'erreur financière).
+        $this->postJson('/api/demo/v1/wallet/withdraw', [
+            'phone_number' => '+228900000099',
+        ], $this->auth($account['token']))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('montant');
+    }
+
+    public function test_recharge_is_pending_until_confirmation_then_credits_once(): void
+    {
+        $account = $this->createDemoAccount('+22890000041', 'Recharge');
+        $recharge = $this->postJson('/api/demo/v1/wallet/recharge', [
+            'montant' => 2000,
+            'phone_number' => '+22890000042',
+        ], $this->auth($account['token']))
+            ->assertCreated()
+            ->assertJsonPath('information.payment.mode', 'demo')
+            ->assertJsonPath('information.payment.must_be_redirected', false)
+            ->assertJsonPath('information.status', 1);
+
+        $reference = $recharge->json('information.reference');
+        $this->getJson('/api/demo/v1/wallet', $this->auth($account['token']))
+            ->assertJsonPath('wallet.solde_raw', 50000);
+
+        $this->postJson('/api/demo/v1/wallet/recharge/notify', [
+            'transaction_id' => $reference,
+            'amount' => 9999999,
+            'code' => 200,
+        ], $this->auth($account['token']))
+            ->assertOk()
+            ->assertJsonPath('credit', true);
+        $this->getJson('/api/demo/v1/wallet', $this->auth($account['token']))
+            ->assertJsonPath('wallet.solde_raw', 52000);
+
+        $this->postJson('/api/demo/v1/wallet/recharge/notify', [
+            'transaction_id' => $reference,
+            'code' => 200,
+        ], $this->auth($account['token']))
+            ->assertOk()
+            ->assertJsonPath('credit', false)
+            ->assertJsonPath('raison', 'deja_traitee');
+        $this->getJson('/api/demo/v1/wallet', $this->auth($account['token']))
+            ->assertJsonPath('wallet.solde_raw', 52000);
+    }
+
+    public function test_recharge_confirmation_cannot_credit_another_demo_account(): void
+    {
+        $owner = $this->createDemoAccount('+22890000051', 'Owner');
+        $other = $this->createDemoAccount('+22890000052', 'Other');
+        $reference = $this->postJson('/api/demo/v1/wallet/recharge', [
+            'montant' => 500,
+            'phone_number' => '+22890000053',
+        ], $this->auth($owner['token']))->assertCreated()->json('information.reference');
+
+        $this->postJson('/api/demo/v1/wallet/recharge/notify', [
+            'transaction_id' => $reference,
+            'code' => 200,
+        ], $this->auth($other['token']))
+            ->assertOk()
+            ->assertJsonPath('credit', false)
+            ->assertJsonPath('raison', 'recharge_introuvable');
+        $this->getJson('/api/demo/v1/wallet', $this->auth($owner['token']))
+            ->assertJsonPath('wallet.solde_raw', 50000);
+    }
+
+    public function test_transactions_are_scoped_complete_and_paginated(): void
+    {
+        $account = $this->createDemoAccount('+22890000061', 'Historique');
+        $first = $this->postJson('/api/demo/v1/wallet/recharge', [
+            'montant' => 500,
+            'phone_number' => '+22890000000',
+        ], $this->auth($account['token']))->assertCreated()->json('information.reference');
+        $second = $this->postJson('/api/demo/v1/wallet/recharge', [
+            'montant' => 600,
+            'phone_number' => '+22890000000',
+        ], $this->auth($account['token']))->assertCreated()->json('information.reference');
+        $other = $this->createDemoAccount('+22890000062', 'Autre');
+        $this->postJson('/api/demo/v1/wallet/recharge', [
+            'montant' => 700,
+            'phone_number' => '+22890000000',
+        ], $this->auth($other['token']))->assertCreated();
+
+        $response = $this->getJson('/api/demo/v1/wallet/transactions?page=1&limit=1', $this->auth($account['token']))
+            ->assertOk()
+            ->assertJsonPath('pagination.page', 1)
+            ->assertJsonPath('pagination.limit', 1)
+            ->assertJsonPath('pagination.total', 2)
+            ->assertJsonPath('pagination.total_pages', 2)
+            ->assertJsonPath('pagination.has_next', true);
+
+        $transaction = array_values($response->json('transactions'))[0][0];
+        $this->assertSame($second, $transaction['reference']);
+        $this->assertArrayHasKey('type_icon', $transaction);
+        $this->assertArrayHasKey('counterpart', $transaction);
+
+        $this->getJson('/api/demo/v1/wallet/transactions?page=2&limit=1', $this->auth($account['token']))
+            ->assertJsonPath('pagination.page', 2)
+            ->assertJsonPath('pagination.has_next', false);
+        $this->assertNotSame($first, $second);
+    }
+
+    public function test_kondjipro_encaissement_uses_same_wallet_and_credits_only_after_confirmation(): void
+    {
+        $account = $this->createDemoAccount('+22890000071', 'Médecin');
+        $this->getJson('/api/demo/v1/kondjipro/solde', $this->auth($account['token']))
+            ->assertOk()
+            ->assertJsonPath('solde', 50000);
+
+        $encaissement = $this->postJson('/api/demo/v1/kondjipro/encaissement', [
+            'patient_id' => 9001,
+            'montant' => 1500,
+            'motif' => 'Consultation démo',
+        ], $this->auth($account['token']))
+            ->assertCreated()
+            ->assertJsonPath('transaction.statut', 'en_attente');
+        $reference = $encaissement->json('transaction.reference');
+
+        $this->postJson("/api/demo/v1/kondjipro/encaissement/{$reference}/confirm", [], $this->auth($account['token']))
+            ->assertOk()
+            ->assertJsonPath('ok', true);
+        $this->getJson('/api/demo/v1/wallet', $this->auth($account['token']))
+            ->assertJsonPath('wallet.solde_raw', 51500);
+        $this->postJson("/api/demo/v1/kondjipro/encaissement/{$reference}/confirm", [], $this->auth($account['token']))
+            ->assertOk()
+            ->assertJsonPath('ok', false);
+    }
+
+    public function test_demo_configuration_never_exposes_server_secrets(): void
+    {
+        $config = $this->getJson('/api/demo/v1/config')->assertOk()->json();
+
+        $this->assertTrue($config['demo']);
+        $this->assertSame('', $config['pusher']['app_key']);
         $this->assertSame('', $config['turn']['credential']);
-
-        // Aucune valeur ne doit être un secret configuré côté serveur.
-        foreach ($config['ice_servers'] as $serveur) {
-            $this->assertArrayNotHasKey('credential', $serveur);
-            $this->assertArrayNotHasKey('username', $serveur);
-        }
-
-        // Et le contrôle mordant : la config réelle, elle, en contient.
-        $reel = $this->getJson('/api/v1/config')->json();
-        $this->assertNotEmpty(
-            $reel['pusher']['app_key'],
-            'Ce test perdrait son mordant si la config réelle devenait vide.'
-        );
-    }
-
-    /**
-     * Toutes les routes démo portent le marqueur `demo: true`. Un client
-     * peut ainsi détecter qu'il est en démo au lieu de croire à un
-     * solde réel.
-     */
-    public function test_every_demo_endpoint_is_flagged_as_demo(): void
-    {
-        $appels = [
-            ['get', '/api/demo/v1/wallet'],
-            ['get', '/api/demo/v1/wallet/transactions'],
-            ['get', '/api/demo/v1/users/me'],
-            ['get', '/api/demo/v1/users/search'],
-            ['get', '/api/demo/v1/config'],
-            ['get', '/api/demo/v1/appels/9001'],
-            ['post', '/api/demo/v1/auth/login'],
-            ['post', '/api/demo/v1/auth/logout'],
-            ['post', '/api/demo/v1/wallet/recharge'],
-            ['post', '/api/demo/v1/wallet/transfert'],
-            ['post', '/api/demo/v1/wallet/recharge/notify'],
-            ['post', '/api/demo/v1/appels/init'],
-            ['post', '/api/demo/v1/appels/9001/lancer'],
-            ['post', '/api/demo/v1/appels/9001/decrocher'],
-            ['post', '/api/demo/v1/appels/9001/heartbeat'],
-            ['post', '/api/demo/v1/appels/9001/terminer'],
-            ['post', '/api/demo/v1/auth/register'],
-            ['get', '/api/demo/v1/contacts'],
-            ['post', '/api/demo/v1/contacts'],
-            ['get', '/api/demo/v1/devices'],
-            ['post', '/api/demo/v1/devices/register'],
-            ['post', '/api/demo/v1/call/ring'],
-            ['post', '/api/demo/v1/call/signal'],
-            ['post', '/api/demo/v1/call/cancel'],
-        ];
-
-        foreach ($appels as [$methode, $url]) {
-            $reponse = $methode === 'get'
-                ? $this->getJson($url)
-                : $this->postJson($url);
-
-            $reponse->assertSuccessful();
-            $this->assertTrue(
-                $reponse->json('demo'),
-                "{$url} ne renvoie pas demo=true : un client pourrait le prendre pour du réel."
-            );
+        foreach ($config['ice_servers'] as $server) {
+            $this->assertArrayNotHasKey('credential', $server);
+            $this->assertArrayNotHasKey('username', $server);
         }
     }
 
-    /**
-     * Couverture des endpoints réellement appelés par le client web.
-     *
-     * La SPA a été écrite contre l'API réelle : chaque appel passe par
-     * `apiUrl()`, donc `/api/demo/v1` en démo. Toute route que la SPA appelle
-     * doit exister sous le préfixe démo, sinon le testeur voit un 404.
-     *
-     * Ce test a été ajouté après avoir constaté AU NAVIGATEUR que la démo
-     * restait bloquée sur l'écran de connexion (0 appel API) et renvoyait 404
-     * sur l'onglet Contacts et sur les trois routes de signalisation d'appel.
-     * Les routes `/appels/*` existantes ne sont volontairement pas listées ici :
-     * aucun code ne les appelle, le client speaking `/call/*`.
-     */
-    public function test_client_web_contracts_are_all_covered_by_the_demo_api(): void
+    public function test_demo_api_contracts_and_call_routes_are_callable_with_a_session(): void
     {
-        // Chemins relevés dans api/public/js/spa-*.js via apiUrl()/apiPrefix(),
-        // avec la clé que le client lit ensuite dans la réponse.
-        $contrats = [
-            ['get', '/api/demo/v1/users/me', 'data.id'],
-            ['get', '/api/demo/v1/config', 'ice_servers'],
-            ['get', '/api/demo/v1/wallet', 'wallet.solde_raw'],
-            ['get', '/api/demo/v1/wallet/transactions', 'transactions'],
-            // Contacts : le client mappe data.contacts[].user_id / name / phone_number
-            ['get', '/api/demo/v1/contacts', 'contacts.0.user_id'],
-            ['get', '/api/demo/v1/contacts', 'contacts.0.name'],
-            ['get', '/api/demo/v1/contacts', 'contacts.0.phone_number'],
-            // Appareils : le client lit data.devices[].label / platform / device_id
-            ['get', '/api/demo/v1/devices', 'devices.0.label'],
-            ['get', '/api/demo/v1/devices', 'devices.0.platform'],
-            ['get', '/api/demo/v1/devices', 'devices.0.device_id'],
-        ];
+        $account = $this->createDemoAccount('+22890000081', 'Client');
+        $headers = $this->auth($account['token']);
 
-        foreach ($contrats as [$methode, $url, $cle]) {
-            $reponse = $methode === 'get'
-                ? $this->getJson($url)
-                : $this->postJson($url);
+        $this->getJson('/api/demo/v1/users/me', $headers)
+            ->assertOk()
+            ->assertJsonPath('data.wallet_id', $account['user']['wallet_id']);
+        $this->getJson('/api/demo/v1/users/search', $headers)->assertOk()->assertJsonPath('data', []);
+        $this->getJson('/api/demo/v1/contacts', $headers)->assertOk()->assertJsonPath('demo', true);
+        $this->postJson('/api/demo/v1/contacts', [], $headers)->assertCreated()->assertJsonPath('demo', true);
+        $this->deleteJson('/api/demo/v1/contacts/9002', [], $headers)->assertOk()->assertJsonPath('demo', true);
+        $this->getJson('/api/demo/v1/devices', $headers)->assertOk()->assertJsonPath('demo', true);
+        $this->postJson('/api/demo/v1/devices/register', [], $headers)->assertCreated()->assertJsonPath('demo', true);
+        $this->deleteJson('/api/demo/v1/devices/demo-device-2', [], $headers)->assertOk()->assertJsonPath('demo', true);
 
-            $reponse->assertSuccessful();
-            $this->assertNotNull(
-                $reponse->json($cle),
-                "{$url} ne renvoie pas '{$cle}' : le client lit cette clé et afficherait un écran vide."
-            );
-        }
-    }
-
-    /**
-     * La démo doit couvrir les MÊMES chemins de signalisation que la SPA
-     * (`spa-calls.js` appelle /call/ring, /call/signal, /call/cancel).
-     *
-     * Les routes `/appels/init` et `/appels/{id}/{action}` écrites pour la
-     * démo ne sont appelées par aucun code : le nom français de l'entité avait
-     * été pris pour le nom de l'endpoint. Un test qui passe `/appels/*` ne
-     * prouve donc rien sur l'appel depuis le client.
-     */
-    public function test_demo_answer_to_the_real_signalling_paths_used_by_the_client(): void
-    {
         foreach (['ring', 'signal', 'cancel'] as $action) {
-            $this->postJson("/api/demo/v1/call/{$action}")
-                ->assertSuccessful()
+            $this->postJson("/api/demo/v1/call/{$action}", [], $headers)
+                ->assertOk()
                 ->assertJsonPath('demo', true)
                 ->assertJsonPath('action', $action);
         }
+        $this->postJson('/api/demo/v1/appels/init', [], $headers)
+            ->assertCreated()
+            ->assertJsonPath('data.appel_id', 9001);
+        $this->postJson('/api/demo/v1/appels/9001/terminer', [], $headers)
+            ->assertOk()
+            ->assertJsonPath('data.solde_consomme', 0);
+        $this->getJson('/api/demo/v1/appels/9001', $headers)->assertOk()->assertJsonPath('demo', true);
+        foreach (['lancer', 'decrocher', 'heartbeat'] as $action) {
+            $this->postJson("/api/demo/v1/appels/9001/{$action}", [], $headers)
+                ->assertOk()
+                ->assertJsonPath('demo', true);
+        }
     }
 
-    /**
-     * Un testeur qui clique « Créer un compte » sur l'écran de connexion doit
-     * atterrir dans la démo, pas y rester bloqué.
-     */
-    public function test_demo_register_returns_a_session(): void
+    private function createDemoAccount(string $phone, string $name): array
     {
-        $this->postJson('/api/demo/v1/auth/register', [
-            'phone_number' => '+22890000001',
-            'password'      => 'peu-importe',
-            'name'          => 'Testeur',
-        ])
-            ->assertCreated()
-            ->assertJsonPath('data.token', DemoApiController::JETON_DEMO)
-            ->assertJsonPath('data.user.id', 9001);
+        $response = $this->postJson('/api/demo/v1/auth/register', [
+            'name' => $name,
+            'phone_number' => $phone,
+            'password' => 'DemoPass123',
+            'device_id' => 'test-device',
+        ])->assertCreated();
+
+        return [
+            'user' => $response->json('data.user'),
+            'token' => $response->json('data.token'),
+        ];
+    }
+
+    private function auth(string $token): array
+    {
+        return ['Authorization' => 'Bearer '.$token];
     }
 }

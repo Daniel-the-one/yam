@@ -41,6 +41,8 @@ detect_ip() {
 LOCAL_IP=$(detect_ip)
 
 start_local_servers() {
+    ./scripts/sync-web.sh --demo-only >/dev/null
+
     # 1. Mise à jour de .env
     if grep -q '^APP_URL=' .env; then
         sed -i "s|^APP_URL=.*|APP_URL=http://${LOCAL_IP}:${API_PORT}|" .env
@@ -85,7 +87,11 @@ case "$MODE" in
         say "${c_bold}════════════════════════════════════════════════════════════════${c_off}"
         say ""
         say "📱 ${c_bold}Lien Web à ouvrir sur vos téléphones / PC :${c_off}"
-        say "   👉 ${c_green}http://${LOCAL_IP}:${API_PORT}/app.html${c_off}"
+        say "   👉 ${c_green}http://${LOCAL_IP}:${API_PORT}/demo.html${c_off}"
+        say ""
+        say "🔌 ${c_bold}API de démonstration à partager :${c_off}"
+        say "   👉 ${c_green}http://${LOCAL_IP}:${API_PORT}/api/demo/v1${c_off}"
+        say "   📥 Collection Postman : http://${LOCAL_IP}:${API_PORT}/Yam-Demo-API.postman_collection.json"
         say ""
         say "📦 ${c_bold}Télécharger l'application Android (APK) :${c_off}"
         say "   👉 http://${LOCAL_IP}:${API_PORT}/yam-debug.apk"
@@ -100,6 +106,10 @@ case "$MODE" in
         say ""
         say "${c_bold}🚀 Lancement du tunnel public sécurisé Pinggy (compatible 4G / tous réseaux)...${c_off}"
         say "Appuyez sur Ctrl+C pour arrêter le tunnel."
+        say "Quand Pinggy affiche son domaine HTTPS, partagez ces liens :"
+        say "   https://<domaine-pinggy>/demo.html"
+        say "   https://<domaine-pinggy>/api/demo/v1"
+        say "   https://<domaine-pinggy>/Yam-Demo-API.postman_collection.json"
         say ""
         ssh -o StrictHostKeyChecking=no -p 443 -R0:localhost:$API_PORT a.pinggy.io
         ;;
@@ -108,6 +118,7 @@ case "$MODE" in
         start_local_servers
         say ""
         say "${c_bold}🚀 Lancement du tunnel LocalTunnel...${c_off}"
+        say "Après l'affichage du domaine public, partagez /demo.html ou /api/demo/v1."
         npx localtunnel --port $API_PORT
         ;;
 
@@ -115,6 +126,7 @@ case "$MODE" in
         start_local_servers
         say ""
         say "${c_bold}🚀 Lancement du tunnel Ngrok...${c_off}"
+        say "Après l'affichage du domaine public, partagez /demo.html ou /api/demo/v1."
         if command -v ngrok >/dev/null 2>&1; then
             ngrok http $API_PORT
         elif [[ -f ~/.local/bin/ngrok ]]; then
