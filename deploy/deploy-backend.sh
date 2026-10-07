@@ -21,8 +21,15 @@
 #
 # ── Chemins ──────────────────────────────────────────────
 # Par défaut : app/ routes/ config/ database/migrations/
+#              bootstrap/app.php
 # (le reste du backend — vendor/, storage/, .env — n'est jamais
 #  touché : voir § Ce qui n'est JAMAIS poussé.)
+#
+# ⚠️  bootstrap/app.php est INDISPENSABLE : c'est là que sont
+#     enregistrés les alias de middleware (ex. `demo.auth`) et les
+#     handlers d'exception. L'oublier provoque en prod des 500
+#     « Target class [demo.auth] does not exist » alors que tous les
+#     contrôleurs sont bien présents (incident du 2026-10-07).
 #
 # ⚠️  Ne pushed PAS public/ ici : c'est deploy.sh qui s'en charge,
 #     avec un dossier distant différent (/public).
@@ -54,7 +61,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-[[ ${#TARGETS[@]} -eq 0 ]] && TARGETS=(app routes config database/migrations)
+[[ ${#TARGETS[@]} -eq 0 ]] && TARGETS=(app routes config database/migrations bootstrap/app.php)
 
 # ── Config FTP ───────────────────────────────────────────
 conf="$CONFIG_DIR/$PROJECT.conf"
