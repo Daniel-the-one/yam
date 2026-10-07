@@ -56,20 +56,35 @@ curl -s -o /dev/null -w '%{http_code}\n' https://yam.mdkrlabs.dev/api/demo/v1
 curl -s -o /dev/null -w '%{http_code}\n' https://yam.mdkrlabs.dev/Yam-Demo-API.postman_collection.json
 ```
 
-### 2. Créer le lien partageable (application Postman)
+### 2. Créer un lien partageable (application Postman)
 
+> ⚠️ **Mise à jour (10/2026)** : le lien JSON public « Create public link »
+> (`https://www.postman.com/…/collection/…`) est **déprécié** par Postman —
+> plus aucun nouveau lien ne peut être généré. Deux méthodes restent valables :
+
+**Méthode A — Collection Access Key (lien JSON, lecture seule)**
 1. Postman → **Import** → fichier `api/postman/Yam-Demo-API.postman_collection.json`.
-2. Clic droit sur la collection → **Share** → **Create public link**
-   (ou *Share to workspace* puis activer le lien public).
-3. Copier le lien `https://www.postman.com/…/collection/…` et le diffuser.
-4. Tester le lien en navigation privée : l'import doit fonctionner, et
-   `base_url` doit pointer vers `https://yam.mdkrlabs.dev`.
+2. Sélectionner la collection → **Share** → **Via API** →
+   **Get collection JSON using Collection Access Key**.
+3. **Generate New Key** → copier le lien généré (lecture seule, expire après
+   60 jours d'inactivité). Ne partager que si la collection ne contient aucun
+   secret (c'est le cas pour la démo).
 
-### 3. Alternative auto-hébergée (sans compte Postman)
+**Méthode B — Workspace public (aperçu web + fork)**
+1. La collection doit être dans un **workspace public** : sélectionner la
+   collection → **Move Collection** → choisir/créer un workspace public.
+2. **Share** → **Link to collection in public workspace** → **Copy link**.
+3. Le lien `https://www.postman.com/workspace/…` permet de **voir et forker**
+   la collection sans compte (aperçu dans le navigateur).
+
+### 3. Alternative auto-hébergée (sans compte Postman, recommandée)
 
 `https://yam.mdkrlabs.dev/Yam-Demo-API.postman_collection.json`
 → dans Postman : **Import → From link**. (404 tant que `deploy.sh` n'a pas
 poussé la copie.)
+
+Avantages : **aucune expiration, aucun compte Postman requis, hébergé sur
+notre propre domaine** — c'est le lien à diffuser en priorité.
 
 ## Validation locale avant publication
 
@@ -97,3 +112,6 @@ Référence actuelle : 67 requêtes / 148 assertions / 0 échec (suite complète
 - `api/Yam-API.postman_collection.json` (racine) est un **ancien export**
   (30/09) de la suite complète, devenu obsolète : le supprimer ou le
   régénérer pour éviter deux sources de vérité.
+- Le lien JSON public Postman est déprécié (10/2026) : ne pas tenter de
+  « Create public link » ; utiliser la Collection Access Key (méthode A),
+  le workspace public (méthode B) ou le lien auto-hébergé (section 3).
