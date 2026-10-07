@@ -56,7 +56,7 @@ if ($pdo) {
                 'numero'  => facture_numero((int)$r['id'], $r['date_facture'] ?? null),
                 'patient' => $r['patient'] ?? 'Patient inconnu',
                 'montant' => (int)$r['total'],
-                'date'    => date('d/m/Y', strtotime($r['date_facture'])),
+                'date'    => $r['date_facture'] ? date('d/m/Y', strtotime($r['date_facture'])) : '',
                 'statut'  => $r['statut'] ?? 'en_attente',
                 'actes'   => $actes,
             ];

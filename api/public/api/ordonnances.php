@@ -56,7 +56,7 @@ if ($pdo) {
                 'id'          => (int)$r['id'],
                 'numero'      => ordonnance_numero((int)$r['id'], $r['date_ordonnance'] ?? null),
                 'patient'     => $r['patient'] ?? 'Patient inconnu',
-                'date'        => date('d/m/Y', strtotime($r['date_ordonnance'])),
+'date'       => $r['date_ordonnance'] ? date('d/m/Y', strtotime($r['date_ordonnance'])) : '',
                 'notes'       => $r['notes'] ?? '',
                 'medicaments' => $meds,
             ];
